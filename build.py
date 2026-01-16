@@ -115,7 +115,7 @@ backend_deps = {
 compile_debug = False
 
 # @CONFIGURE:
-build_wasm = True
+build_wasm = False
 
 # @CONFIGURE:
 build_imgui_internal = True

@@ -3,9 +3,7 @@ package impl_sdl3
 import im "../"
 import "../../sdl"
 
-IMGUI :: im.IMGUI
-
-when IMGUI && im.BACKEND_SDL3_ENABLED {
+when im.BACKEND_SDL3_ENABLED {
     when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
         @(link_prefix = "ImGui_ImplSDL3_", default_calling_convention = "c")
         foreign _ {

@@ -3,9 +3,7 @@ package impl_vulkan
 import im ".."
 import vk "vendor:vulkan"
 
-IMGUI :: im.IMGUI
-
-when IMGUI && im.BACKEND_VULKAN_ENABLED {
+when im.BACKEND_VULKAN_ENABLED {
     when ODIN_OS == .Linux || ODIN_OS == .Darwin {
         @(require) foreign import stdcpp "system:c++"
     }

@@ -14,9 +14,7 @@ import im ".."
 import glm "core:math/linalg/glsl"
 import gl "vendor:wasm/WebGL"
 
-IMGUI :: im.IMGUI
-
-when IMGUI && im.BACKEND_WEBGL_ENABLED {
+when im.BACKEND_WEBGL_ENABLED {
     @(private)
     Data :: struct {
         Allocator:                 runtime.Allocator,

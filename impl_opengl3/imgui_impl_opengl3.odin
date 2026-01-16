@@ -1,9 +1,8 @@
 package imgui_impl_opengl3
 
 import im "../"
-IMGUI :: im.IMGUI
 
-when IMGUI && im.BACKEND_OPENGL3_ENABLED {
+when im.BACKEND_OPENGL3_ENABLED {
     when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
         // imgui_impl_opengl3.h
         // Last checked `v1.91.1-docking` (6df1a0)

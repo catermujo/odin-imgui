@@ -1266,9 +1266,9 @@ def main():
     write_global_header(imgui_file)
     write_import_header(imgui_file)
 
-    write_line(imgui_file, "IMGUI :: #config(IMGUI, false)")
+    # write_line(imgui_file, "IMGUI :: #config(IMGUI, false)")
 
-    write_line(imgui_file, "when IMGUI {")
+    # write_line(imgui_file, "when IMGUI {")
     write_main_file_header(imgui_file)
     ingest_and_write_defines(imgui_file, imgui_info["defines"])
     write_enums(imgui_file, imgui_info["enums"])
@@ -1279,7 +1279,7 @@ def main():
     write_functions(imgui_file, "lib", imgui_info["functions"])
     write_line(imgui_file, "}")
     write_typedefs(imgui_file, imgui_info["typedefs"])
-    write_line(imgui_file, "}")
+    # write_line(imgui_file, "}")
 
     # Read imgui_internal file, if present.
     if has_imgui_internal:
@@ -1289,7 +1289,7 @@ def main():
         write_global_header(imgui_internal_file)
         write_import_header(imgui_internal_file)
 
-        write_line(imgui_internal_file, "when IMGUI {")
+        # write_line(imgui_internal_file, "when IMGUI {")
         ingest_and_write_defines(imgui_internal_file, imgui_internal_info["defines"])
         write_enums(imgui_internal_file, imgui_internal_info["enums"])
         write_structs(imgui_internal_file, imgui_internal_info["structs"])
@@ -1302,7 +1302,7 @@ def main():
         write_functions(imgui_internal_file, "lib", imgui_internal_info["functions"])
         write_line(imgui_internal_file, "}")
         write_typedefs(imgui_internal_file, imgui_internal_info["typedefs"])
-        write_line(imgui_internal_file, "}")
+        # write_line(imgui_internal_file, "}")
 
 
 if __name__ == "__main__":
