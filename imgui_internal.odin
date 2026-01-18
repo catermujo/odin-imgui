@@ -1,7 +1,6 @@
 package imgui
 
 import "core:c"
-import "core:c/libc"
 
 when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
 } else {
@@ -4641,7 +4640,7 @@ when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
 
 // Our current column maximum is 64 but we may raise that in the future.
 TableColumnIdx :: i16
-FileHandle :: ^libc.FILE
+FileHandle :: ^c.FILE
 BitArrayPtr :: ^u32 // Name for use in structs
 // Helper: ImPool<>
 // Basic keyed storage for contiguous instances, slow/amortized insertion, O(1) indexable, O(Log N) queries by ID over a dense/hot buffer,

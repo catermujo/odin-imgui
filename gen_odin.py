@@ -213,7 +213,7 @@ _type_aliases = {
     "ImS64": "i64",
     "ImU64": "u64",
     "size_t": "c.size_t",
-    "FILE": "libc.FILE",
+    "FILE": "c.FILE",
 }
 
 _pointer_aliases = {
@@ -435,7 +435,6 @@ def write_import_header(file: typing.IO):
         file,
         """
 import "core:c"
-import "core:c/libc"
 
 when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
 } else {
