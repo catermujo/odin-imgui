@@ -31,7 +31,7 @@ wanted_backends = [
     "opengl3",
     # "sdlrenderer2",
     # "glfw",
-    # "dx11",
+    "dx11",
     # "dx12",
     # "win32",
     # "osx",
@@ -45,7 +45,7 @@ backends = {
     # "android": {"supported": False},
     # "dx9": {"supported": False, "enabled_on": ["windows"]},
     # "dx10": {"supported": False, "enabled_on": ["windows"]},
-    # "dx11": {"supported": True, "enabled_on": ["windows"]},
+    "dx11": {"supported": True, "enabled_on": ["windows"]},
     # Bindings exist for DX12, but they are untested
     # "dx12": {"supported": False, "enabled_on": ["windows"]},
     # "glfw": {"supported": True, "deps": ["glfw"]},
@@ -157,11 +157,14 @@ def exec_vcvars(cmd: typing.List[str], what):
     if len(what) > max_what_len:
         what = what[: max_what_len - 2] + ".."
     print(what + (" " * (max_what_len - len(what))) + "> " + " ".join(cmd))
-    # assertx(
-    #     subprocess.run(f"vcvarsall.bat x64 && {' '.join(cmd)}", shell=True).returncode
-    #     == 0,
-    #     f"Failed to run command '{cmd}'",
-    # )
+    try:
+        return subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode("utf-8")
+    except subprocess.CalledProcessError as uh_oh:
+        print("=" * 80)
+        print("FAILED")
+        print("=" * 80)
+        print(uh_oh.output.decode())
+        exit(1)
 
 
 def copy(from_path: str, files: typing.List[str], to_path: str):
@@ -310,7 +313,7 @@ def compile(
     else:
         compile_flags = platform_select(
             {
-                "windows": ['/DIMGUI_IMPL_API=extern\\"C\\"'],
+                "windows": ['/DIMGUI_IMPL_API=extern"C"'],
                 "linux, darwin": [
                     '-DIMGUI_IMPL_API=extern"C"',
                     "-fPIC",

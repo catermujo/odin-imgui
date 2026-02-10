@@ -7,3 +7,5 @@ ols.json
 !**/*.so
 !**/*.lib
 !**/*.dylib
+__pycache__/
+.venv/
