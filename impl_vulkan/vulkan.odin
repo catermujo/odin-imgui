@@ -89,4 +89,3 @@ when im.BACKEND_VULKAN_ENABLED {
 
     // There are some more Vulkan functions/structs, but they aren't necessary
 }
-

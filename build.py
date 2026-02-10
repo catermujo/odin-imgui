@@ -50,7 +50,7 @@ backends = {
     # "dx12": {"supported": False, "enabled_on": ["windows"]},
     # "glfw": {"supported": True, "deps": ["glfw"]},
     # "glut": {"supported": False},
-    # "metal": {"supported": True, "enabled_on": ["darwin"]},
+    "metal": {"supported": True, "enabled_on": ["darwin"]},
     # "opengl2": {"supported": False},
     "opengl3": {"supported": True},
     # "osx": {"supported": True, "enabled_on": ["darwin"]},

@@ -332,4 +332,3 @@ when im.BACKEND_WEBGL_ENABLED {
         DestroyFontsTexture()
     }
 }
-

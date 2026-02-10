@@ -62,4 +62,3 @@ when im.BACKEND_OPENGL3_ENABLED {
         DestroyDeviceObjects :: proc() ---
     }
 }
-

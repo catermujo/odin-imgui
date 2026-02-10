@@ -3926,25 +3926,25 @@ when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
         // - Legacy: Pre-1.78 there are DragXXX() function signatures that take a final `float power=1.0f' argument instead of the `ImGuiSliderFlags flags=0' argument.
         //   If you get a warning converting a float to ImGuiSliderFlags, read https://github.com/ocornut/imgui/issues/3361
         @(link_name = "ImGui_DragFloat")
-        DragFloat :: proc(label: cstring, v: ^f32, v_speed: f32 = .01, v_min: f32 = 0.0, v_max: f32 = 1.0, format: cstring = "%.3f", flags: SliderFlags = {}) -> bool --- // If v_min >= v_max we have no bound
+        DragFloat :: proc(label: cstring, v: ^f32, v_speed: f32 = 1.0, v_min: f32 = 0.0, v_max: f32 = 0.0, format: cstring = "%.3f", flags: SliderFlags = {}) -> bool --- // If v_min >= v_max we have no bound
         @(link_name = "ImGui_DragFloat2")
-        DragFloat2 :: proc(label: cstring, v: ^[2]f32, v_speed: f32 = .01, v_min: f32 = 0.0, v_max: f32 = 1.0, format: cstring = "%.3f", flags: SliderFlags = {}) -> bool ---
+        DragFloat2 :: proc(label: cstring, v: ^[2]f32, v_speed: f32 = 1.0, v_min: f32 = 0.0, v_max: f32 = 0.0, format: cstring = "%.3f", flags: SliderFlags = {}) -> bool ---
         @(link_name = "ImGui_DragFloat3")
-        DragFloat3 :: proc(label: cstring, v: ^[3]f32, v_speed: f32 = .01, v_min: f32 = 0.0, v_max: f32 = 1.0, format: cstring = "%.3f", flags: SliderFlags = {}) -> bool ---
+        DragFloat3 :: proc(label: cstring, v: ^[3]f32, v_speed: f32 = 1.0, v_min: f32 = 0.0, v_max: f32 = 0.0, format: cstring = "%.3f", flags: SliderFlags = {}) -> bool ---
         @(link_name = "ImGui_DragFloat4")
-        DragFloat4 :: proc(label: cstring, v: ^[4]f32, v_speed: f32 = .01, v_min: f32 = 0.0, v_max: f32 = 1.0, format: cstring = "%.3f", flags: SliderFlags = {}) -> bool ---
+        DragFloat4 :: proc(label: cstring, v: ^[4]f32, v_speed: f32 = 1.0, v_min: f32 = 0.0, v_max: f32 = 0.0, format: cstring = "%.3f", flags: SliderFlags = {}) -> bool ---
         @(link_name = "ImGui_DragFloatRange2")
-        DragFloatRange2 :: proc(label: cstring, v_current_min: ^f32, v_current_max: ^f32, v_speed: f32 = .01, v_min: f32 = 0.0, v_max: f32 = 1.0, format: cstring = "%.3f", format_max: cstring = nil, flags: SliderFlags = {}) -> bool ---
+        DragFloatRange2 :: proc(label: cstring, v_current_min: ^f32, v_current_max: ^f32, v_speed: f32 = 1.0, v_min: f32 = 0.0, v_max: f32 = 0.0, format: cstring = "%.3f", format_max: cstring = nil, flags: SliderFlags = {}) -> bool ---
         @(link_name = "ImGui_DragInt")
-        DragInt :: proc(label: cstring, v: ^c.int, v_speed: f32 = 1.0, v_min: c.int = 0, v_max: c.int = 100, format: cstring = "%d", flags: SliderFlags = {}) -> bool --- // If v_min >= v_max we have no bound
+        DragInt :: proc(label: cstring, v: ^c.int, v_speed: f32 = 1.0, v_min: c.int = {}, v_max: c.int = {}, format: cstring = "%d", flags: SliderFlags = {}) -> bool --- // If v_min >= v_max we have no bound
         @(link_name = "ImGui_DragInt2")
-        DragInt2 :: proc(label: cstring, v: ^[2]c.int, v_speed: f32 = 1.0, v_min: c.int = 0, v_max: c.int = {}, format: cstring = "%d", flags: SliderFlags = {}) -> bool ---
+        DragInt2 :: proc(label: cstring, v: ^[2]c.int, v_speed: f32 = 1.0, v_min: c.int = {}, v_max: c.int = {}, format: cstring = "%d", flags: SliderFlags = {}) -> bool ---
         @(link_name = "ImGui_DragInt3")
-        DragInt3 :: proc(label: cstring, v: ^[3]c.int, v_speed: f32 = 1.0, v_min: c.int = 0, v_max: c.int = 100, format: cstring = "%d", flags: SliderFlags = {}) -> bool ---
+        DragInt3 :: proc(label: cstring, v: ^[3]c.int, v_speed: f32 = 1.0, v_min: c.int = {}, v_max: c.int = {}, format: cstring = "%d", flags: SliderFlags = {}) -> bool ---
         @(link_name = "ImGui_DragInt4")
-        DragInt4 :: proc(label: cstring, v: ^[4]c.int, v_speed: f32 = 1.0, v_min: c.int = 0, v_max: c.int = 100, format: cstring = "%d", flags: SliderFlags = {}) -> bool ---
+        DragInt4 :: proc(label: cstring, v: ^[4]c.int, v_speed: f32 = 1.0, v_min: c.int = {}, v_max: c.int = {}, format: cstring = "%d", flags: SliderFlags = {}) -> bool ---
         @(link_name = "ImGui_DragIntRange2")
-        DragIntRange2 :: proc(label: cstring, v_current_min: ^c.int, v_current_max: ^c.int, v_speed: f32 = 1.0, v_min: c.int = 0, v_max: c.int = 100, format: cstring = "%d", format_max: cstring = nil, flags: SliderFlags = {}) -> bool ---
+        DragIntRange2 :: proc(label: cstring, v_current_min: ^c.int, v_current_max: ^c.int, v_speed: f32 = 1.0, v_min: c.int = {}, v_max: c.int = {}, format: cstring = "%d", format_max: cstring = nil, flags: SliderFlags = {}) -> bool ---
         @(link_name = "ImGui_DragScalar")
         DragScalar :: proc(label: cstring, data_type: DataType, p_data: rawptr, v_speed: f32 = 1.0, p_min: rawptr = nil, p_max: rawptr = nil, format: cstring = nil, flags: SliderFlags = {}) -> bool ---
         @(link_name = "ImGui_DragScalarN")
@@ -4020,13 +4020,13 @@ when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
         @(link_name = "ImGui_ColorEdit3")
         ColorEdit3 :: proc(label: cstring, col: ^[3]f32, flags: ColorEditFlags = {}) -> bool ---
         @(link_name = "ImGui_ColorEdit4")
-        ColorEdit4 :: proc(label: cstring, col: ^[4]f32, flags: ColorEditFlags = ColorEditFlags_DefaultOptions) -> bool ---
+        ColorEdit4 :: proc(label: cstring, col: ^[4]f32, flags: ColorEditFlags = {}) -> bool ---
         @(link_name = "ImGui_ColorPicker3")
-        ColorPicker3 :: proc(label: cstring, col: ^[3]f32, flags: ColorEditFlags = ColorEditFlags_DefaultOptions) -> bool ---
+        ColorPicker3 :: proc(label: cstring, col: ^[3]f32, flags: ColorEditFlags = {}) -> bool ---
         @(link_name = "ImGui_ColorPicker4")
-        ColorPicker4 :: proc(label: cstring, col: ^[4]f32, flags: ColorEditFlags = ColorEditFlags_DefaultOptions, ref_col: ^f32 = nil) -> bool ---
+        ColorPicker4 :: proc(label: cstring, col: ^[4]f32, flags: ColorEditFlags = {}, ref_col: ^f32 = nil) -> bool ---
         @(link_name = "ImGui_ColorButton")
-        ColorButton :: proc(desc_id: cstring, col: Vec4, flags: ColorEditFlags = ColorEditFlags_DefaultOptions, size: Vec2 = 100) -> bool --- // display a color square/button, hover for details, return true when pressed.
+        ColorButton :: proc(desc_id: cstring, col: Vec4, flags: ColorEditFlags = {}, size: Vec2 = {0, 0}) -> bool --- // display a color square/button, hover for details, return true when pressed.
         @(link_name = "ImGui_SetColorEditOptions")
         SetColorEditOptions :: proc(flags: ColorEditFlags) --- // initialize current options (generally on application startup) if you want to select a default format, picker type, etc. User will be able to change many settings, unless you pass the _NoOptions flag to your calls.
         // Widgets: Trees

@@ -3110,9 +3110,9 @@ when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
         @(link_name = "ImGui_RenderColorRectWithAlphaCheckerboard")
         RenderColorRectWithAlphaCheckerboard :: proc(draw_list: ^DrawList, p_min: Vec2, p_max: Vec2, fill_col: u32, grid_step: f32, grid_off: Vec2, rounding: f32 = 0.0, flags: DrawFlags = {}) ---
         @(link_name = "ImGui_RenderNavCursor")
-        RenderNavCursor :: proc(bb: Rect, id: ID, flags: NavRenderCursorFlags = {}) --- // Navigation highlight
+        RenderNavCursor :: proc(bb: Rect, id: ID, flags: NavRenderCursorFlags = NavRenderCursorFlags_None) --- // Navigation highlight
         @(link_name = "ImGui_RenderNavHighlight")
-        RenderNavHighlight :: proc(bb: Rect, id: ID, flags: NavRenderCursorFlags = {}) --- // Renamed in 1.91.4
+        RenderNavHighlight :: proc(bb: Rect, id: ID, flags: NavRenderCursorFlags = NavRenderCursorFlags_None) --- // Renamed in 1.91.4
         @(link_name = "ImGui_FindRenderedTextEnd")
         FindRenderedTextEnd :: proc(text: cstring, text_end: cstring = nil) -> cstring --- // Find the optional ## from which we stop displaying text.
         @(link_name = "ImGui_RenderMouseCursor")
