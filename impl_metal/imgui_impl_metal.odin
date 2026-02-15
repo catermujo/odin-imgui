@@ -4,10 +4,18 @@ package imgui_impl_metal
 import im "../"
 import mtl "vendor:darwin/Metal"
 
-when ODIN_ARCH == .amd64 {
-    foreign import lib {"../imgui_darwin_x64.a", "system:QuartzCore.framework"}
+when im.USE_DLL {
+    when ODIN_ARCH == .amd64 {
+        foreign import lib "../imgui_darwin_x64.dylib"
+    } else {
+        foreign import lib "../imgui_darwin_arm64.dylib"
+    }
 } else {
-    foreign import lib {"../imgui_darwin_arm64.a", "system:QuartzCore.framework"}
+    when ODIN_ARCH == .amd64 {
+        foreign import lib {"../imgui_darwin_x64.a", "system:QuartzCore.framework"}
+    } else {
+        foreign import lib {"../imgui_darwin_arm64.a", "system:QuartzCore.framework"}
+    }
 }
 
 // imgui_impl_metal.h

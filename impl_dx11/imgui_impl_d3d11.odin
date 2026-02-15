@@ -4,10 +4,18 @@ package imgui_impl_d3d11
 import im "../"
 import d3d11 "vendor:directx/d3d11"
 
-when ODIN_ARCH == .amd64 {
-    foreign import lib "../imgui_windows_x64.lib"
+when im.USE_DLL {
+    when ODIN_ARCH == .amd64 {
+        foreign import lib "../imgui_windows_x64.dll"
+    } else {
+        foreign import lib "../imgui_windows_arm64.dll"
+    }
 } else {
-    foreign import lib "../imgui_windows_arm64.lib"
+    when ODIN_ARCH == .amd64 {
+        foreign import lib "../imgui_windows_x64.lib"
+    } else {
+        foreign import lib "../imgui_windows_arm64.lib"
+    }
 }
 
 // imgui_impl_dx11.h

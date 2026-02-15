@@ -35,7 +35,7 @@ wanted_backends = [
     # "dx12",
     # "win32",
     # "osx",
-    # "metal",
+    "metal",
     # "wgpu",
 ]
 # Supported means that an impl bindings file exists, and that it has been tested.
@@ -268,6 +268,82 @@ def get_platform_imgui_lib_name() -> str:
     return f"imgui_{system.lower()}_{processor}.{binary_ext}"
 
 
+def get_platform_imgui_dll_name() -> str:
+    """Returns imgui shared library name for system/processor"""
+    system = platform.system()
+
+    processor = None
+    if platform.machine() in ["AMD64", "x86_64"]:
+        processor = "x64"
+    if platform.machine() in ["arm64"]:
+        processor = "arm64"
+
+    if system == "Windows":
+        binary_ext = "dll"
+    elif system == "Darwin":
+        binary_ext = "dylib"
+    else:
+        binary_ext = "so"
+
+    assertx(system != "", "System could not be determined")
+    assertx(processor != None, f"Unexpected processor: {platform.machine()}")
+
+    return f"imgui_{system.lower()}_{processor}.{binary_ext}"
+
+
+def link_dll():
+    """Link a shared library from the .o files in temp/"""
+    dll_name = get_platform_imgui_dll_name()
+    system = platform.system()
+
+    # Collect extra link flags from backend dependencies
+    extra_link_flags = []
+    for backend_name in wanted_backends:
+        backend = backends[backend_name]
+        if (
+            "enabled_on" in backend
+            and not system.lower() in backend["enabled_on"]
+        ):
+            continue
+        for dep in backend.get("deps", []):
+            if dep == "sdl3":
+                sdl_dir = path.abspath(path.join("..", "sdl"))
+                extra_link_flags += ["-L" + sdl_dir, "-lSDL3"]
+            elif dep == "sdl2":
+                sdl_dir = path.abspath(path.join("..", "sdl"))
+                extra_link_flags += ["-L" + sdl_dir, "-lSDL2"]
+
+    if system == "Darwin":
+        arch = "arm64" if platform.machine() == "arm64" else "x86_64"
+        obj_files = glob(path.join("temp", "*.o"))
+        exec(
+            ["/opt/homebrew/opt/llvm/bin/clang++", "-dynamiclib",
+             "-arch", arch,
+             "-install_name", dll_name,
+             "-framework", "Foundation",
+             "-framework", "Metal",
+             "-framework", "QuartzCore",
+             "-lc++",
+             "-o", dll_name] + obj_files + extra_link_flags,
+            "Linking shared library",
+        )
+    elif system == "Linux":
+        obj_files = glob(path.join("temp", "*.o"))
+        exec(
+            ["clang++", "-shared", "-o", dll_name] + obj_files + ["-lstdc++"] + extra_link_flags,
+            "Linking shared library",
+        )
+    elif system == "Windows":
+        obj_files = glob(path.join("temp", "*.obj"))
+        exec_vcvars(
+            ["link", "/DLL", "/OUT:" + dll_name] + obj_files,
+            "Linking shared library",
+        )
+
+    assertx(path.isfile(dll_name), f"Failed to create shared library '{dll_name}'")
+    print(f"Created shared library: {dll_name}")
+
+
 # TODO[TS]: This works, but there's a bug in Python, which makes cl.exe return with
 # exit code 2 for no god damn reason at all, if not run with run_vcvars.
 # If we're on windows, we can check for cl.exe, and re execute after calling vcvarsall, if available.
@@ -359,6 +435,11 @@ def compile(
 
             if backend_name in ["osx", "metal"]:
                 all_sources += [f"imgui_impl_{backend_name}.mm"]
+                # Copy and compile the C ABI wrapper if it exists
+                wrapper = pp(f"impl_{backend_name}/c_imgui_impl_{backend_name}.mm")
+                if path.isfile(wrapper):
+                    shutil.copy(wrapper, "temp")
+                    all_sources += [f"c_imgui_impl_{backend_name}.mm"]
             else:
                 all_sources += [f"imgui_impl_{backend_name}.cpp"]
 
@@ -382,6 +463,13 @@ def compile(
                 compile_flags += ["/I" + path.join("..", "backend_deps", include_path)]
             elif platform_unix_like:
                 compile_flags += ["-I" + path.join("..", "backend_deps", include_path)]
+
+        # Some wrapper sources include backend headers from ../imgui/backends.
+        # Those headers include "imgui.h", which must be found via include search paths.
+        if platform_win32_like:
+            compile_flags += ["/I" + path.join("..", "imgui")]
+        elif platform_unix_like:
+            compile_flags += ["-I" + path.join("..", "imgui")]
 
     all_objects = []
     if platform_win32_like:
@@ -613,6 +701,9 @@ def main():
     if build_wasm:
         compile(backend_deps_names, all_sources, True)
     compile(backend_deps_names, all_sources, False)
+
+    if "--dll" in sys.argv:
+        link_dll()
 
     dest_binary = get_platform_imgui_lib_name()
 

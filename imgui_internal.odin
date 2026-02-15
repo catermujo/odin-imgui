@@ -4,26 +4,48 @@ import "core:c"
 
 when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
 } else {
-    when ODIN_OS == .Linux || ODIN_OS == .Darwin {
-        @(require) foreign import stdcpp "system:c++"
-    }
-    when ODIN_OS == .Windows {
-        when ODIN_ARCH == .amd64 {
-            foreign import lib "imgui_windows_x64.lib"
-        } else {
-            foreign import lib "imgui_windows_arm64.lib"
+    when USE_DLL {
+        when ODIN_OS == .Windows {
+            when ODIN_ARCH == .amd64 {
+                foreign import lib "imgui_windows_x64.dll"
+            } else {
+                foreign import lib "imgui_windows_arm64.dll"
+            }
+        } else when ODIN_OS == .Linux {
+            when ODIN_ARCH == .amd64 {
+                foreign import lib "imgui_linux_x64.so"
+            } else {
+                foreign import lib "imgui_linux_arm64.so"
+            }
+        } else when ODIN_OS == .Darwin {
+            when ODIN_ARCH == .amd64 {
+                foreign import lib "imgui_darwin_x64.dylib"
+            } else {
+                foreign import lib "imgui_darwin_arm64.dylib"
+            }
         }
-    } else when ODIN_OS == .Linux {
-        when ODIN_ARCH == .amd64 {
-            foreign import lib "imgui_linux_x64.a"
-        } else {
-            foreign import lib "imgui_linux_arm64.a"
+    } else {
+        when ODIN_OS == .Linux || ODIN_OS == .Darwin {
+            @(require) foreign import stdcpp "system:c++"
         }
-    } else when ODIN_OS == .Darwin {
-        when ODIN_ARCH == .amd64 {
-            foreign import lib "imgui_darwin_x64.a"
-        } else {
-            foreign import lib "imgui_darwin_arm64.a"
+        when ODIN_OS == .Windows {
+            when ODIN_ARCH == .amd64 {
+                foreign import lib "imgui_windows_x64.lib"
+            } else {
+                foreign import lib "imgui_windows_arm64.lib"
+            }
+        } else when ODIN_OS == .Linux {
+            when ODIN_ARCH == .amd64 {
+                foreign import lib "imgui_linux_x64.a"
+            } else {
+                foreign import lib "imgui_linux_arm64.a"
+            }
+        } else when ODIN_OS == .Darwin {
+            when ODIN_ARCH == .amd64 {
+                foreign import lib "imgui_darwin_x64.a"
+            } else {
+                foreign import lib "imgui_darwin_arm64.a"
+            }
         }
     }
 }
@@ -3110,9 +3132,9 @@ when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
         @(link_name = "ImGui_RenderColorRectWithAlphaCheckerboard")
         RenderColorRectWithAlphaCheckerboard :: proc(draw_list: ^DrawList, p_min: Vec2, p_max: Vec2, fill_col: u32, grid_step: f32, grid_off: Vec2, rounding: f32 = 0.0, flags: DrawFlags = {}) ---
         @(link_name = "ImGui_RenderNavCursor")
-        RenderNavCursor :: proc(bb: Rect, id: ID, flags: NavRenderCursorFlags = NavRenderCursorFlags_None) --- // Navigation highlight
+        RenderNavCursor :: proc(bb: Rect, id: ID, flags: NavRenderCursorFlags = {}) --- // Navigation highlight
         @(link_name = "ImGui_RenderNavHighlight")
-        RenderNavHighlight :: proc(bb: Rect, id: ID, flags: NavRenderCursorFlags = NavRenderCursorFlags_None) --- // Renamed in 1.91.4
+        RenderNavHighlight :: proc(bb: Rect, id: ID, flags: NavRenderCursorFlags = {}) --- // Renamed in 1.91.4
         @(link_name = "ImGui_FindRenderedTextEnd")
         FindRenderedTextEnd :: proc(text: cstring, text_end: cstring = nil) -> cstring --- // Find the optional ## from which we stop displaying text.
         @(link_name = "ImGui_RenderMouseCursor")
