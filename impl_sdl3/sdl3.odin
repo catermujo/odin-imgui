@@ -11,6 +11,7 @@ when im.BACKEND_SDL3_ENABLED {
             InitForMetal :: proc(window: ^sdl.Window) -> bool ---
             InitForVulkan :: proc(window: ^sdl.Window) -> bool ---
             InitForD3D :: proc(window: ^sdl.Window) -> bool ---
+            InitForOther :: proc(window: ^sdl.Window) -> bool ---
             Shutdown :: proc() ---
             ProcessEvent :: proc(event: ^sdl.Event) -> bool ---
             NewFrame :: proc() ---
@@ -64,6 +65,7 @@ when im.BACKEND_SDL3_ENABLED {
             InitForMetal :: proc(window: ^sdl.Window) -> bool ---
             InitForVulkan :: proc(window: ^sdl.Window) -> bool ---
             InitForD3D :: proc(window: ^sdl.Window) -> bool ---
+            InitForOther :: proc(window: ^sdl.Window) -> bool ---
             Shutdown :: proc() ---
             ProcessEvent :: proc(event: ^sdl.Event) -> bool ---
             NewFrame :: proc() ---

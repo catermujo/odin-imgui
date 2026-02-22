@@ -272,7 +272,7 @@ when im.BACKEND_WEBGL_ENABLED {
             pixels,
         )
 
-        im.FontAtlas_SetTexID(io.Fonts, cast(rawptr)uintptr(bd.FontTexture))
+        im.FontAtlas_SetTexID(io.Fonts, im.TextureID(bd.FontTexture))
 
         gl.BindTexture(gl.TEXTURE_2D, last_texture)
     }
@@ -284,7 +284,7 @@ when im.BACKEND_WEBGL_ENABLED {
 
         if bd.FontTexture != 0 {
             gl.DeleteTexture(bd.FontTexture)
-            im.FontAtlas_SetTexID(io.Fonts, nil)
+            im.FontAtlas_SetTexID(io.Fonts, 0)
             bd.FontTexture = 0
         }
     }

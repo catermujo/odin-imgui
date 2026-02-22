@@ -230,14 +230,53 @@ def has_tool(tool: str) -> bool:
         return True
 
 
-def ensure_checked_out_with_commit(dir: str, repo: str, wanted_commit: str):
-    if not path.exists(dir):
-        exec(["git", "clone", repo, dir], f"Cloning {dir}")
+def resolve_tool(candidates: typing.List[str]) -> typing.Optional[str]:
+    for candidate in candidates:
+        if "/" in candidate or "\\" in candidate:
+            if path.isfile(candidate):
+                return candidate
+            continue
 
-    exec(["git", "-C", dir, "fetch"], f"Fetching latest commits for {dir}")
+        resolved = shutil.which(candidate)
+        if resolved is not None:
+            return resolved
+    return None
+
+
+def ensure_checked_out_with_commit(
+    dir: str, repo: str, wanted_commit: str, skip_sync: bool = False
+):
+    if not path.exists(dir):
+        assertx(
+            not skip_sync,
+            f"Repository '{dir}' is missing and --skip-sync was set. Run once without --skip-sync to clone it.",
+        )
+        exec(
+            ["git", "-c", "core.fsmonitor=false", "clone", repo, dir],
+            f"Cloning {dir}",
+        )
+
+    if skip_sync:
+        print(f"Skipping sync for {dir} (--skip-sync)")
+    else:
+        fetch_cmd = ["git", "-c", "core.fsmonitor=false", "-C", dir, "fetch"]
+        max_what_len = 40
+        what = f"Fetching latest commits for {dir}"
+        if len(what) > max_what_len:
+            what = what[: max_what_len - 2] + ".."
+        print(what + (" " * (max_what_len - len(what))) + "> " + " ".join(fetch_cmd))
+        fetch = subprocess.run(fetch_cmd, capture_output=True, text=True)
+        if fetch.returncode != 0:
+            print(
+                f"Warning: fetch failed for {dir}, continuing with local checkout:\n"
+                + ((fetch.stderr or fetch.stdout).strip())
+            )
+
     exec(
         [
             "git",
+            "-c",
+            "core.fsmonitor=false",
             "-c",
             "advice.detachedHead=false",
             "-C",
@@ -362,8 +401,10 @@ def did_re_execute() -> bool:
 
 
 def compile(
-    backend_deps_names: typing.Set[str], all_sources: typing.List[str], wasm: bool
+    backend_deps_names: typing.Set[str], base_sources: typing.List[str], wasm: bool
 ):
+    all_sources = list(base_sources)
+
     # Basic flags
     # We aren't meant to have IMGUI_IMPL_API be extern "C"?
     # https://github.com/ocornut/imgui/issues/7930#issuecomment-2319725332
@@ -372,20 +413,33 @@ def compile(
             '-DIMGUI_IMPL_API=extern"C"',
             "-DIMGUI_DISABLE_DEFAULT_SHELL_FUNCTIONS",
             "-DIMGUI_DISABLE_FILE_FUNCTIONS",
-            "--target=wasm32",
-            "-mbulk-memory",
             "-fno-exceptions",
             "-fno-rtti",
             "-fno-threadsafe-statics",
             "-nostdlib++",
             "-fno-use-cxa-atexit",
-            "-Os",
-            "--sysroot=/opt/homebrew/Cellar/emscripten/4.0.20/libexec/cache/sysroot",
-        ]  # + exec(["em++", "--cflags"], "").split(" ")
+            "-std=c++11",
+        ]
 
-        # assertx(has_tool("odin"), "odin not found!")
-        # root = exec(["odin", "root"], "Get odin root")
-        # compile_flags += ["--sysroot=" + root + "vendor/libc"]
+        # The wasm runtime path needs SDL3 platform backend symbols
+        # and OpenGL3 renderer backend symbols.
+        if "sdl3" in wanted_backends:
+            glob_copy(pp("imgui/backends"), "imgui_impl_sdl3.*", "temp")
+            all_sources += ["imgui_impl_sdl3.cpp"]
+
+            # SDL3 headers in this monorepo live next to vendor/imgui.
+            for include_path in [
+                path.abspath(path.join("..", "sdl", "include")),
+                path.abspath(path.join("..", "sdl", "SDL", "include")),
+            ]:
+                compile_flags += ["-I" + include_path]
+
+        if "opengl3" in wanted_backends:
+            compile_flags += ["-DIMGUI_IMPL_OPENGL_ES3"]
+            glob_copy(pp("imgui/backends"), "imgui_impl_opengl3.*", "temp")
+            if path.isfile(pp("imgui/backends/imgui_impl_opengl3_loader.h")):
+                shutil.copy(pp("imgui/backends/imgui_impl_opengl3_loader.h"), "temp")
+            all_sources += ["imgui_impl_opengl3.cpp"]
     else:
         compile_flags = platform_select(
             {
@@ -403,10 +457,15 @@ def compile(
 
     # Optimization flags
     if compile_debug:
-        compile_flags += platform_select(
-            {"windows": ["/Od", "/Z7"], "linux, darwin": ["-g", "-O0"]}
-        )
-    elif not wasm:
+        if wasm:
+            compile_flags += ["-g", "-O0"]
+        else:
+            compile_flags += platform_select(
+                {"windows": ["/Od", "/Z7"], "linux, darwin": ["-g", "-O0"]}
+            )
+    elif wasm:
+        compile_flags += ["-Os"]
+    else:
         compile_flags += platform_select({"windows": ["/O2"], "linux, darwin": ["-O3"]})
 
     if not wasm:
@@ -472,7 +531,11 @@ def compile(
             compile_flags += ["-I" + path.join("..", "imgui")]
 
     all_objects = []
-    if platform_win32_like:
+    if wasm:
+        for file in all_sources:
+            if file.endswith((".cpp", ".mm", ".c")):
+                all_objects.append(path.splitext(file)[0] + ".o")
+    elif platform_win32_like:
         all_objects += map(lambda file: file.removesuffix(".cpp") + ".obj", all_sources)
     elif platform_unix_like:
         for file in all_sources:
@@ -483,38 +546,17 @@ def compile(
 
     os.chdir("temp")
 
-    # cl.exe, *in particular*, won't work without running vcvarsall first, even if cl.exe is in the path.
-    # See did_re_execute
-    # if wasm:
-    #     exec(
-    #         ["em++"]
-    #         + compile_flags
-    #         + exec(["em++", "--cflags"], "").split(" ")
-    #         + [
-    #             "-s",
-    #             "USE_SDL=3",
-    #             "-s",
-    #             "DISABLE_EXCEPTION_CATCHING=1",
-    #             "-s",
-    #             "WASM=1",
-    #             "-s",
-    #             "ALLOW_MEMORY_GROWTH=1",
-    #             "-s",
-    #             "EXIT_RUNTIME=1",
-    #             "-s",
-    #             "ASSERTIONS=1",
-    #         ]
-    #         # +["-I/opt/homebrew/Cellar/emscripten/4.0.20/libexec/system/include"]
-    #         # + ["-I../imgui"]
-    #         + ["-c"]
-    #         + list(map(str, all_sources)),
-    #         "Compiling sources",
-    #     )
-    if platform_win32_like:
+    if wasm:
+        empp = resolve_tool(["em++", "/opt/homebrew/bin/em++"])
+        assertx(empp is not None, "em++ not found!")
+        exec([empp] + compile_flags + ["-c"] + all_sources, "Compiling sources")
+    elif platform_win32_like:
         exec_vcvars(["cl"] + compile_flags + ["/c"] + all_sources, "Compiling sources")
     elif platform.system() == "Darwin":
+        clangpp = resolve_tool(["/opt/homebrew/opt/llvm/bin/clang++", "clang++"])
+        assertx(clangpp is not None, "clang++ not found!")
         exec(
-            ["/opt/homebrew/opt/llvm/bin/clang++"]
+            [clangpp]
             + compile_flags
             + ["-c"]
             + all_sources,
@@ -531,14 +573,20 @@ def compile(
         shutil.rmtree(path="wasm", ignore_errors=True)
         os.mkdir("wasm")
         copy("temp", all_objects, "wasm")
+        if path.isfile("imgui_wasm.a"):
+            os.remove("imgui_wasm.a")
         if platform_win32_like:
             exec(
                 ["lib", "/OUT:" + "imgui_wasm.a"] + map_to_folder(all_objects, "wasm"),
                 "Making library from objects",
             )
-        elif platform_unix_like:
+        else:
+            ar_tool = resolve_tool(
+                ["emar", "/opt/homebrew/bin/emar", "ar", "llvm-ar", "/opt/homebrew/opt/llvm/bin/llvm-ar"]
+            )
+            assertx(ar_tool is not None, "No archiver found (tried emar/ar/llvm-ar)")
             exec(
-                ["ar", "r", "imgui_wasm.a"] + map_to_folder(all_objects, "wasm"),
+                [ar_tool, "rcs", "imgui_wasm.a"] + map_to_folder(all_objects, "wasm"),
                 "Making library from objects",
             )
     elif platform_win32_like:
@@ -562,44 +610,66 @@ def main():
     if did_re_execute():
         return
 
+    do_build_wasm = build_wasm or "--wasm" in sys.argv or "--wasm-only" in sys.argv
+    do_build_native = "--wasm-only" not in sys.argv
+    skip_sync = "--skip-sync" in sys.argv
+    regen_odin = "--regen-odin" in sys.argv
+
+    assertx(do_build_wasm or do_build_native, "Nothing to build.")
+
     # Check that CLI tools are available
     assertx(has_tool("git"), "Git not available!")
 
-    if platform.system() == "Windows":
-        pass
-        # Fun times! We can't check for this, for the reasons described above did_re_execute()
-        # assertx(has_tool("cl") and has_tool("lib"), "cl.exe or lib.exe not in path - did you run vcvarsall.bat?")
-    else:
-        assertx(has_tool("clang"), "clang not found!")
-        assertx(has_tool("ar"), "ar not found!")
+    if do_build_native:
+        if platform.system() == "Windows":
+            pass
+            # Fun times! We can't check for this, for the reasons described above did_re_execute()
+            # assertx(has_tool("cl") and has_tool("lib"), "cl.exe or lib.exe not in path - did you run vcvarsall.bat?")
+        else:
+            assertx(has_tool("clang"), "clang not found!")
+            assertx(has_tool("ar"), "ar not found!")
+
+    if do_build_wasm:
+        assertx(resolve_tool(["em++", "/opt/homebrew/bin/em++"]) is not None, "em++ not found!")
+        assertx(
+            resolve_tool(["emar", "/opt/homebrew/bin/emar", "ar", "llvm-ar", "/opt/homebrew/opt/llvm/bin/llvm-ar"])
+            is not None,
+            "No archiver found for wasm build (tried emar/ar/llvm-ar).",
+        )
 
     # Check out bindings generator tools
     ensure_checked_out_with_commit(
-        "imgui", "https://github.com/ocornut/imgui.git", git_heads["imgui"]
+        "imgui",
+        "https://github.com/ocornut/imgui.git",
+        git_heads["imgui"],
+        skip_sync=skip_sync,
     )
     ensure_checked_out_with_commit(
         "dear_bindings",
         "https://github.com/dearimgui/dear_bindings.git",
         git_heads["dear_bindings"],
+        skip_sync=skip_sync,
     )
 
-    # Check out backend dependencies
-    if not path.isdir("backend_deps"):
-        os.mkdir("backend_deps")
     backend_deps_names = set()
-    for backend_name in wanted_backends:
-        backend = backends[backend_name]
+    if do_build_native:
+        # Check out backend dependencies for native backends.
+        if not path.isdir("backend_deps"):
+            os.mkdir("backend_deps")
+        for backend_name in wanted_backends:
+            backend = backends[backend_name]
 
-        for dep in backend.get("deps", []):
-            backend_deps_names.add(dep)
+            for dep in backend.get("deps", []):
+                backend_deps_names.add(dep)
 
-    for backend_dep in backend_deps_names:
-        full_dep = backend_deps[backend_dep]
-        ensure_checked_out_with_commit(
-            path.join("backend_deps", full_dep["path"]),
-            full_dep["repo"],
-            full_dep["commit"],
-        )
+        for backend_dep in backend_deps_names:
+            full_dep = backend_deps[backend_dep]
+            ensure_checked_out_with_commit(
+                path.join("backend_deps", full_dep["path"]),
+                full_dep["repo"],
+                full_dep["commit"],
+                skip_sync=skip_sync,
+            )
 
     # Clear the temp folder
     shutil.rmtree(path="temp", ignore_errors=True)
@@ -636,33 +706,37 @@ def main():
             "Running dear_bindings: ImGui Internal",
         )
 
-    # Generate odin bindings from dear_bindings json file
-    if build_imgui_internal:
-        exec(
-            [
-                sys.executable,
-                pp("gen_odin.py"),
-                "--imgui",
-                pp("temp/c_imgui.json"),
-                "--imconfig",
-                pp("temp/c_imgui_imconfig.json"),
-                "--imgui_internal",
-                pp("temp/c_imgui_internal.json"),
-            ],
-            "Running odin-imgui",
-        )
+    # Generate Odin bindings from dear_bindings json file only on demand.
+    # Python 3.12+ can produce Odin output with compatibility issues.
+    if regen_odin:
+        if build_imgui_internal:
+            exec(
+                [
+                    sys.executable,
+                    pp("gen_odin.py"),
+                    "--imgui",
+                    pp("temp/c_imgui.json"),
+                    "--imconfig",
+                    pp("temp/c_imgui_imconfig.json"),
+                    "--imgui_internal",
+                    pp("temp/c_imgui_internal.json"),
+                ],
+                "Running odin-imgui",
+            )
+        else:
+            exec(
+                [
+                    sys.executable,
+                    pp("gen_odin.py"),
+                    "--imgui",
+                    pp("temp/c_imgui.json"),
+                    "--imconfig",
+                    pp("temp/c_imgui_imconfig.json"),
+                ],
+                "Running odin-imgui",
+            )
     else:
-        exec(
-            [
-                sys.executable,
-                pp("gen_odin.py"),
-                "--imgui",
-                pp("temp/c_imgui.json"),
-                "--imconfig",
-                pp("temp/c_imgui_imconfig.json"),
-            ],
-            "Running odin-imgui",
-        )
+        print("Skipping odin-imgui generation (use --regen-odin to refresh Odin bindings).")
 
     # Find and copy imgui sources to temp folder
     _imgui_headers = glob_copy("imgui", "*.h", "temp")
@@ -689,7 +763,7 @@ def main():
     )
 
     f.writelines([f"DEBUG_ENABLED :: {'true' if compile_debug else 'false'}", "\n"])
-    f.writelines([f"WASM_ENABLED :: {'true' if build_wasm else 'false'}", "\n", "\n"])
+    f.writelines([f"WASM_ENABLED :: {'true' if do_build_wasm else 'false'}", "\n", "\n"])
 
     for backend_name in backends:
         f.writelines(
@@ -697,12 +771,14 @@ def main():
                 f"BACKEND_{backend_name.upper()}_ENABLED :: {'true' if backend_name in wanted_backends else 'false'}\n"
             ]
         )
+    f.writelines([f"BACKEND_WEBGL_ENABLED :: {'true' if do_build_wasm else 'false'}\n"])
 
-    if build_wasm:
+    if do_build_wasm:
         compile(backend_deps_names, all_sources, True)
-    compile(backend_deps_names, all_sources, False)
+    if do_build_native:
+        compile(backend_deps_names, all_sources, False)
 
-    if "--dll" in sys.argv:
+    if do_build_native and "--dll" in sys.argv:
         link_dll()
 
     dest_binary = get_platform_imgui_lib_name()
@@ -710,8 +786,11 @@ def main():
     expected_files = [
         "imgui.odin",
         "enabled.odin",
-        dest_binary,
     ]  # TODO: imconfig, internal
+    if do_build_native:
+        expected_files.append(dest_binary)
+    if do_build_wasm:
+        expected_files.append("imgui_wasm.a")
 
     for file in expected_files:
         assertx(
