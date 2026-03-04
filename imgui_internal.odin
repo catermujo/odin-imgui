@@ -4671,4 +4671,3 @@ PoolIdx :: c.int
 KeyRoutingIndex :: i16
 ContextHookCallback :: proc "c" (ctx: ^Context, hook: ^ContextHook)
 TableDrawChannelIdx :: u16
-

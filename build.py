@@ -741,12 +741,14 @@ def main():
     # Find and copy imgui sources to temp folder
     _imgui_headers = glob_copy("imgui", "*.h", "temp")
     imgui_sources = glob_copy("imgui", "*.cpp", "temp")
+    extra_sources = ["imgui_curve_widget.cpp"]
+    copy(".", extra_sources, "temp")
 
     # We copied `imconfig.h` from imgui, but we have our own. Overwrite the previous one.
     shutil.copy(pp("imconfig.h"), pp("temp/imconfig.h"))
 
     # Gather sources, defines, includes etc
-    all_sources = imgui_sources
+    all_sources = imgui_sources + extra_sources
     all_sources += ["c_imgui.cpp"]
     if build_imgui_internal:
         all_sources.append("c_imgui_internal.cpp")

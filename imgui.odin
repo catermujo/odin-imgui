@@ -5145,3 +5145,30 @@ MemAllocFunc :: proc "c" (sz: c.size_t, user_data: rawptr) -> rawptr // Function
 MemFreeFunc :: proc "c" (ptr: rawptr, user_data: rawptr) // Function signature for ImGui::SetAllocatorFunctions()
 DrawCallback :: proc "c" (parent_list: ^DrawList, cmd: ^DrawCmd)
 
+////////////////////////////////////////////////////////////
+// EXTRA WIDGETS
+////////////////////////////////////////////////////////////
+
+CurveTerminator :: f32(-10000.0)
+
+when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
+    @(default_calling_convention = "c")
+    foreign _ {
+        @(link_name = "ImGui_Curve")
+        Curve :: proc(label: cstring, size: Vec2, maxpoints: c.int, points: ^Vec2, selection: ^c.int = nil, range_min: Vec2 = {0, 0}, range_max: Vec2 = {1, 1}) -> c.int ---
+        @(link_name = "ImGui_CurveValue")
+        CurveValue :: proc(p: f32, maxpoints: c.int, points: ^Vec2) -> f32 ---
+        @(link_name = "ImGui_CurveValueSmooth")
+        CurveValueSmooth :: proc(p: f32, maxpoints: c.int, points: ^Vec2) -> f32 ---
+    }
+} else {
+    @(default_calling_convention = "c")
+    foreign lib {
+        @(link_name = "ImGui_Curve")
+        Curve :: proc(label: cstring, size: Vec2, maxpoints: c.int, points: ^Vec2, selection: ^c.int = nil, range_min: Vec2 = {0, 0}, range_max: Vec2 = {1, 1}) -> c.int ---
+        @(link_name = "ImGui_CurveValue")
+        CurveValue :: proc(p: f32, maxpoints: c.int, points: ^Vec2) -> f32 ---
+        @(link_name = "ImGui_CurveValueSmooth")
+        CurveValueSmooth :: proc(p: f32, maxpoints: c.int, points: ^Vec2) -> f32 ---
+    }
+}

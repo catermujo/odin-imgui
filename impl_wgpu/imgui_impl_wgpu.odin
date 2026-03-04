@@ -541,4 +541,3 @@ InvalidateDeviceObjects :: proc() {
         frame.vertexBufferHost.allocator = bd.allocator
     }
 }
-
