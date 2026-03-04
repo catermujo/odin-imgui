@@ -1,3 +1,4 @@
+import argparse
 import os
 import platform
 import random
@@ -386,12 +387,12 @@ def link_dll():
 # TODO[TS]: This works, but there's a bug in Python, which makes cl.exe return with
 # exit code 2 for no god damn reason at all, if not run with run_vcvars.
 # If we're on windows, we can check for cl.exe, and re execute after calling vcvarsall, if available.
-def did_re_execute() -> bool:
+def did_re_execute(no_reexecute: bool) -> bool:
     if platform.system() != "Windows":
         return False
     if has_tool("cl"):
         return False
-    if "-no_reexecute" in sys.argv:
+    if no_reexecute:
         return False
     print("Re-executing with vcvarsall..")
     os.system(
@@ -601,19 +602,58 @@ def compile(
         )
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Build and generate bindings for vendor/imgui."
+    )
+    parser.add_argument(
+        "--wasm",
+        action="store_true",
+        help="Build the WebAssembly static library in addition to native outputs.",
+    )
+    parser.add_argument(
+        "--wasm-only",
+        action="store_true",
+        help="Only build the WebAssembly static library.",
+    )
+    parser.add_argument(
+        "--skip-sync",
+        action="store_true",
+        help="Skip git fetch operations for repositories and dependencies.",
+    )
+    parser.add_argument(
+        "--regen-odin",
+        action="store_true",
+        help="Regenerate Odin bindings with gen_odin.py.",
+    )
+    parser.add_argument(
+        "--dll",
+        action="store_true",
+        help="Also link a shared library from native build objects.",
+    )
+    parser.add_argument(
+        "-no_reexecute",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
+    return parser.parse_args()
+
+
 def main():
+    args = parse_args()
+
     assertx(
         path.isfile("build.py"),
         "You have to run the script from within the repository for now!",
     )
 
-    if did_re_execute():
+    if did_re_execute(args.no_reexecute):
         return
 
-    do_build_wasm = build_wasm or "--wasm" in sys.argv or "--wasm-only" in sys.argv
-    do_build_native = "--wasm-only" not in sys.argv
-    skip_sync = "--skip-sync" in sys.argv
-    regen_odin = "--regen-odin" in sys.argv
+    do_build_wasm = build_wasm or args.wasm or args.wasm_only
+    do_build_native = not args.wasm_only
+    skip_sync = args.skip_sync
+    regen_odin = args.regen_odin
 
     assertx(do_build_wasm or do_build_native, "Nothing to build.")
 
@@ -780,7 +820,7 @@ def main():
     if do_build_native:
         compile(backend_deps_names, all_sources, False)
 
-    if do_build_native and "--dll" in sys.argv:
+    if do_build_native and args.dll:
         link_dll()
 
     dest_binary = get_platform_imgui_lib_name()
