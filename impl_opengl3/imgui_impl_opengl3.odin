@@ -24,9 +24,9 @@ when im.BACKEND_OPENGL3_ENABLED {
         when im.USE_DLL {
             when ODIN_OS == .Windows {
                 when ODIN_ARCH == .amd64 {
-                    foreign import lib "../imgui_windows_x64.dll"
+                    foreign import lib "../imgui_windows_x64_dll.lib"
                 } else {
-                    foreign import lib "../imgui_windows_arm64.dll"
+                    foreign import lib "../imgui_windows_arm64_dll.lib"
                 }
             } else when ODIN_OS == .Linux {
                 when ODIN_ARCH == .amd64 {

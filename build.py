@@ -331,13 +331,33 @@ def get_platform_imgui_dll_name() -> str:
     return f"imgui_{system.lower()}_{processor}.{binary_ext}"
 
 
+def get_platform_imgui_dll_import_lib_name() -> str:
+    """Returns the import library name used by the shared library build."""
+    system = platform.system()
+    assertx(system == "Windows", "Import library naming is only used on Windows")
+
+    processor = None
+    if platform.machine() in ["AMD64", "x86_64"]:
+        processor = "x64"
+    if platform.machine() in ["arm64"]:
+        processor = "arm64"
+
+    assertx(processor != None, f"Unexpected processor: {platform.machine()}")
+    return f"imgui_windows_{processor}_dll.lib"
+
+
 def link_dll():
     """Link a shared library from the .o files in temp/"""
     dll_name = get_platform_imgui_dll_name()
     system = platform.system()
 
-    # Collect extra link flags from backend dependencies
+    # Collect extra link flags from backend dependencies.
     extra_link_flags = []
+    windows_libpaths = set()
+    windows_libs = set()
+    enabled_backends = []
+    windows_implib_name = None
+
     for backend_name in wanted_backends:
         backend = backends[backend_name]
         if (
@@ -345,13 +365,41 @@ def link_dll():
             and not system.lower() in backend["enabled_on"]
         ):
             continue
+        enabled_backends.append(backend_name)
         for dep in backend.get("deps", []):
             if dep == "sdl3":
                 sdl_dir = path.abspath(path.join("..", "sdl"))
-                extra_link_flags += ["-L" + sdl_dir, "-lSDL3"]
+                if system == "Windows":
+                    windows_libpaths.add(sdl_dir)
+                    if path.isfile(path.join(sdl_dir, "SDL3.lib")):
+                        windows_libs.add("SDL3.lib")
+                    elif path.isfile(path.join(sdl_dir, "SDL3_static.lib")):
+                        windows_libs.add("SDL3_static.lib")
+                    else:
+                        windows_libs.add("SDL3.lib")
+                else:
+                    extra_link_flags += ["-L" + sdl_dir, "-lSDL3"]
             elif dep == "sdl2":
                 sdl_dir = path.abspath(path.join("..", "sdl"))
-                extra_link_flags += ["-L" + sdl_dir, "-lSDL2"]
+                if system == "Windows":
+                    windows_libpaths.add(sdl_dir)
+                    windows_libs.add("SDL2.lib")
+                else:
+                    extra_link_flags += ["-L" + sdl_dir, "-lSDL2"]
+
+    # Backends can require extra system SDK libs when producing a DLL.
+    if system == "Windows":
+        windows_backend_libs = {
+            "dx11": ["d3d11.lib", "dxgi.lib"],
+            "dx12": ["d3d12.lib", "dxgi.lib", "d3dcompiler.lib"],
+            "opengl3": ["opengl32.lib"],
+            # Vulkan backend is compiled with VK_NO_PROTOTYPES, so linking the
+            # Vulkan loader import library is not required here.
+            "vulkan": [],
+        }
+        for backend_name in enabled_backends:
+            for lib_name in windows_backend_libs.get(backend_name, []):
+                windows_libs.add(lib_name)
 
     if system == "Darwin":
         arch = "arm64" if platform.machine() == "arm64" else "x86_64"
@@ -375,13 +423,30 @@ def link_dll():
         )
     elif system == "Windows":
         obj_files = glob(path.join("temp", "*.obj"))
+        windows_implib_name = get_platform_imgui_dll_import_lib_name()
+        link_cmd = [
+            "link",
+            "/DLL",
+            "/OUT:" + dll_name,
+            "/IMPLIB:" + windows_implib_name,
+        ]
+        for libpath in sorted(windows_libpaths):
+            link_cmd.append("/LIBPATH:" + libpath)
+        link_cmd += obj_files + sorted(windows_libs)
         exec_vcvars(
-            ["link", "/DLL", "/OUT:" + dll_name] + obj_files,
+            link_cmd,
             "Linking shared library",
         )
 
     assertx(path.isfile(dll_name), f"Failed to create shared library '{dll_name}'")
     print(f"Created shared library: {dll_name}")
+    if system == "Windows" and windows_implib_name is not None:
+        if path.isfile(windows_implib_name):
+            print(f"Created import library: {windows_implib_name}")
+        else:
+            print(
+                "Note: no import library was produced (DLL exports are likely empty)."
+            )
 
 
 # TODO[TS]: This works, but there's a bug in Python, which makes cl.exe return with
@@ -395,14 +460,22 @@ def did_re_execute(no_reexecute: bool) -> bool:
     if no_reexecute:
         return False
     print("Re-executing with vcvarsall..")
-    os.system(
-        "".join(["vcvarsall.bat x64 && ", sys.executable, " build.py -no_reexecute"])
+    forwarded_args = [arg for arg in sys.argv[1:] if arg != "-no_reexecute"]
+    rerun_cmd = subprocess.list2cmdline(
+        [sys.executable, "build.py", "-no_reexecute"] + forwarded_args
     )
+    result = subprocess.run(
+        ["cmd", "/d", "/c", f"call vcvarsall.bat x64 && {rerun_cmd}"]
+    )
+    assertx(result.returncode == 0, "Re-executed build failed.")
     return True
 
 
 def compile(
-    backend_deps_names: typing.Set[str], base_sources: typing.List[str], wasm: bool
+    backend_deps_names: typing.Set[str],
+    base_sources: typing.List[str],
+    wasm: bool,
+    build_dll: bool = False,
 ):
     all_sources = list(base_sources)
 
@@ -444,7 +517,7 @@ def compile(
     else:
         compile_flags = platform_select(
             {
-                "windows": ['/DIMGUI_IMPL_API=extern"C"'],
+                "windows": [],
                 "linux, darwin": [
                     '-DIMGUI_IMPL_API=extern"C"',
                     "-fPIC",
@@ -468,6 +541,9 @@ def compile(
         compile_flags += ["-Os"]
     else:
         compile_flags += platform_select({"windows": ["/O2"], "linux, darwin": ["-O3"]})
+
+    if build_dll and not wasm and platform_win32_like:
+        compile_flags += ["/DIMGUI_BUILD_DLL"]
 
     if not wasm:
         # Find and copy imgui backend sources to temp folder
@@ -818,7 +894,7 @@ def main():
     if do_build_wasm:
         compile(backend_deps_names, all_sources, True)
     if do_build_native:
-        compile(backend_deps_names, all_sources, False)
+        compile(backend_deps_names, all_sources, False, args.dll)
 
     if do_build_native and args.dll:
         link_dll()
@@ -831,6 +907,10 @@ def main():
     ]  # TODO: imconfig, internal
     if do_build_native:
         expected_files.append(dest_binary)
+        if args.dll:
+            expected_files.append(get_platform_imgui_dll_name())
+            if platform.system() == "Windows":
+                expected_files.append(get_platform_imgui_dll_import_lib_name())
     if do_build_wasm:
         expected_files.append("imgui_wasm.a")
 
