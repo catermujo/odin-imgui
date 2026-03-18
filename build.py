@@ -760,6 +760,15 @@ def main():
         git_heads["imgui"],
         skip_sync=skip_sync,
     )
+    # Apply local patches on top of the checked-out imgui commit.
+    patches_dir = path.abspath("patches")
+    if path.isdir(patches_dir):
+        for patch_file in sorted(glob(path.join(patches_dir, "*.patch"))):
+            exec(
+                ["git", "-c", "core.fsmonitor=false", "-C", "imgui",
+                 "am", "--3way", patch_file],
+                f"Applying {path.basename(patch_file)}",
+            )
     ensure_checked_out_with_commit(
         "dear_bindings",
         "https://github.com/dearimgui/dear_bindings.git",
