@@ -261,19 +261,6 @@ GetBackendData :: proc() -> ^Data {
 }
 
 @(private)
-CreateShaderModule :: proc(source: string) -> (stage_desc: wgpu.ProgrammableStageDescriptor) {
-    bd := GetBackendData()
-
-    stage_desc.module = wgpu.DeviceCreateShaderModule(
-        bd.device,
-        &{nextInChain = &wgpu.ShaderSourceWGSL{sType = .ShaderSourceWGSL, code = source}},
-    )
-
-    stage_desc.entryPoint = "main"
-    return
-}
-
-@(private)
 CreateImageBindGroup :: proc(layout: wgpu.BindGroupLayout, texture: wgpu.TextureView) -> wgpu.BindGroup {
     bd := GetBackendData()
 
@@ -444,16 +431,22 @@ CreateDeviceObjects :: proc() {
         &{bindGroupLayoutCount = len(bg_layouts), bindGroupLayouts = raw_data(&bg_layouts)},
     )
 
-    vertex_shader_desc := CreateShaderModule(#load("vertex.wgsl"))
-    pixel_shader_desc := CreateShaderModule(#load("fragment.wgsl"))
+    vertex_shader_module := wgpu.DeviceCreateShaderModule(
+        bd.device,
+        &{nextInChain = &wgpu.ShaderSourceWGSL{sType = .ShaderSourceWGSL, code = #load("vertex.wgsl")}},
+    )
+    pixel_shader_module := wgpu.DeviceCreateShaderModule(
+        bd.device,
+        &{nextInChain = &wgpu.ShaderSourceWGSL{sType = .ShaderSourceWGSL, code = #load("fragment.wgsl")}},
+    )
 
     bd.pipelineState = wgpu.DeviceCreateRenderPipeline(
         bd.device,
         &{
             layout = pipeline_layout,
             vertex = {
-                module = vertex_shader_desc.module,
-                entryPoint = vertex_shader_desc.entryPoint,
+                module = vertex_shader_module,
+                entryPoint = "main",
                 bufferCount = 1,
                 buffers = &wgpu.VertexBufferLayout {
                     arrayStride = size_of(imgui.DrawVert),
@@ -461,16 +454,16 @@ CreateDeviceObjects :: proc() {
                     attributeCount = 3,
                     attributes = raw_data(
                         []wgpu.VertexAttribute {
-                            {.Float32x2, cast(u64)offset_of(imgui.DrawVert, pos), 0},
-                            {.Float32x2, cast(u64)offset_of(imgui.DrawVert, uv), 1},
-                            {.Unorm8x4, cast(u64)offset_of(imgui.DrawVert, col), 2},
+                            {nil, .Float32x2, u64(offset_of(imgui.DrawVert, pos)), 0},
+                            {nil, .Float32x2, u64(offset_of(imgui.DrawVert, uv)), 1},
+                            {nil, .Unorm8x4, u64(offset_of(imgui.DrawVert, col)), 2},
                         },
                     ),
                 },
             },
             fragment = &{
-                module = pixel_shader_desc.module,
-                entryPoint = pixel_shader_desc.entryPoint,
+                module = pixel_shader_module,
+                entryPoint = "main",
                 targetCount = 1,
                 targets = &wgpu.ColorTargetState {
                     format = bd.renderTargetFormat,
@@ -505,8 +498,8 @@ CreateDeviceObjects :: proc() {
     )
     bd.renderResources.imageBindGroupLayout = bg_layouts[1]
 
-    wgpu.ShaderModuleRelease(vertex_shader_desc.module)
-    wgpu.ShaderModuleRelease(pixel_shader_desc.module)
+    wgpu.ShaderModuleRelease(vertex_shader_module)
+    wgpu.ShaderModuleRelease(pixel_shader_module)
     wgpu.PipelineLayoutRelease(pipeline_layout)
     wgpu.BindGroupLayoutRelease(bg_layouts[0])
 }
@@ -541,3 +534,4 @@ InvalidateDeviceObjects :: proc() {
         frame.vertexBufferHost.allocator = bd.allocator
     }
 }
+
