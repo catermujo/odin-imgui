@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import argparse
 import os
 import platform
@@ -360,10 +362,7 @@ def link_dll():
 
     for backend_name in wanted_backends:
         backend = backends[backend_name]
-        if (
-            "enabled_on" in backend
-            and not system.lower() in backend["enabled_on"]
-        ):
+        if "enabled_on" in backend and not system.lower() in backend["enabled_on"]:
             continue
         enabled_backends.append(backend_name)
         for dep in backend.get("deps", []):
@@ -405,20 +404,34 @@ def link_dll():
         arch = "arm64" if platform.machine() == "arm64" else "x86_64"
         obj_files = glob(path.join("temp", "*.o"))
         exec(
-            ["/opt/homebrew/opt/llvm/bin/clang++", "-dynamiclib",
-             "-arch", arch,
-             "-install_name", dll_name,
-             "-framework", "Foundation",
-             "-framework", "Metal",
-             "-framework", "QuartzCore",
-             "-lc++",
-             "-o", dll_name] + obj_files + extra_link_flags,
+            [
+                "/opt/homebrew/opt/llvm/bin/clang++",
+                "-dynamiclib",
+                "-arch",
+                arch,
+                "-install_name",
+                dll_name,
+                "-framework",
+                "Foundation",
+                "-framework",
+                "Metal",
+                "-framework",
+                "QuartzCore",
+                "-lc++",
+                "-o",
+                dll_name,
+            ]
+            + obj_files
+            + extra_link_flags,
             "Linking shared library",
         )
     elif system == "Linux":
         obj_files = glob(path.join("temp", "*.o"))
         exec(
-            ["clang++", "-shared", "-o", dll_name] + obj_files + ["-lstdc++"] + extra_link_flags,
+            ["clang++", "-shared", "-o", dll_name]
+            + obj_files
+            + ["-lstdc++"]
+            + extra_link_flags,
             "Linking shared library",
         )
     elif system == "Windows":
@@ -633,10 +646,7 @@ def compile(
         clangpp = resolve_tool(["/opt/homebrew/opt/llvm/bin/clang++", "clang++"])
         assertx(clangpp is not None, "clang++ not found!")
         exec(
-            [clangpp]
-            + compile_flags
-            + ["-c"]
-            + all_sources,
+            [clangpp] + compile_flags + ["-c"] + all_sources,
             "Compiling sources",
         )
     elif platform_unix_like:
@@ -659,7 +669,13 @@ def compile(
             )
         else:
             ar_tool = resolve_tool(
-                ["emar", "/opt/homebrew/bin/emar", "ar", "llvm-ar", "/opt/homebrew/opt/llvm/bin/llvm-ar"]
+                [
+                    "emar",
+                    "/opt/homebrew/bin/emar",
+                    "ar",
+                    "llvm-ar",
+                    "/opt/homebrew/opt/llvm/bin/llvm-ar",
+                ]
             )
             assertx(ar_tool is not None, "No archiver found (tried emar/ar/llvm-ar)")
             exec(
@@ -746,9 +762,20 @@ def main():
             assertx(has_tool("ar"), "ar not found!")
 
     if do_build_wasm:
-        assertx(resolve_tool(["em++", "/opt/homebrew/bin/em++"]) is not None, "em++ not found!")
         assertx(
-            resolve_tool(["emar", "/opt/homebrew/bin/emar", "ar", "llvm-ar", "/opt/homebrew/opt/llvm/bin/llvm-ar"])
+            resolve_tool(["em++", "/opt/homebrew/bin/em++"]) is not None,
+            "em++ not found!",
+        )
+        assertx(
+            resolve_tool(
+                [
+                    "emar",
+                    "/opt/homebrew/bin/emar",
+                    "ar",
+                    "llvm-ar",
+                    "/opt/homebrew/opt/llvm/bin/llvm-ar",
+                ]
+            )
             is not None,
             "No archiver found for wasm build (tried emar/ar/llvm-ar).",
         )
@@ -765,8 +792,16 @@ def main():
     if path.isdir(patches_dir):
         for patch_file in sorted(glob(path.join(patches_dir, "*.patch"))):
             exec(
-                ["git", "-c", "core.fsmonitor=false", "-C", "imgui",
-                 "am", "--3way", patch_file],
+                [
+                    "git",
+                    "-c",
+                    "core.fsmonitor=false",
+                    "-C",
+                    "imgui",
+                    "am",
+                    "--3way",
+                    patch_file,
+                ],
                 f"Applying {path.basename(patch_file)}",
             )
     ensure_checked_out_with_commit(
@@ -861,7 +896,9 @@ def main():
                 "Running odin-imgui",
             )
     else:
-        print("Skipping odin-imgui generation (use --regen-odin to refresh Odin bindings).")
+        print(
+            "Skipping odin-imgui generation (use --regen-odin to refresh Odin bindings)."
+        )
 
     # Find and copy imgui sources to temp folder
     _imgui_headers = glob_copy("imgui", "*.h", "temp")
@@ -890,7 +927,9 @@ def main():
     )
 
     f.writelines([f"DEBUG_ENABLED :: {'true' if compile_debug else 'false'}", "\n"])
-    f.writelines([f"WASM_ENABLED :: {'true' if do_build_wasm else 'false'}", "\n", "\n"])
+    f.writelines(
+        [f"WASM_ENABLED :: {'true' if do_build_wasm else 'false'}", "\n", "\n"]
+    )
 
     for backend_name in backends:
         f.writelines(
