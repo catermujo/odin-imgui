@@ -252,7 +252,7 @@ def ensure_checked_out_with_commit(
     if not path.exists(dir):
         assertx(
             not skip_sync,
-            f"Repository '{dir}' is missing and --skip-sync was set. Run once without --skip-sync to clone it.",
+            f"Repository '{dir}' is missing and -skip-sync was set. Run once without -skip-sync to clone it.",
         )
         exec(
             ["git", "-c", "core.fsmonitor=false", "clone", repo, dir],
@@ -260,7 +260,7 @@ def ensure_checked_out_with_commit(
         )
 
     if skip_sync:
-        print(f"Skipping sync for {dir} (--skip-sync)")
+        print(f"Skipping sync for {dir} (-skip-sync)")
     else:
         fetch_cmd = ["git", "-c", "core.fsmonitor=false", "-C", dir, "fetch"]
         max_what_len = 40
@@ -699,27 +699,27 @@ def parse_args() -> argparse.Namespace:
         description="Build and generate bindings for vendor/imgui."
     )
     parser.add_argument(
-        "--wasm",
+        "-wasm",
         action="store_true",
         help="Build the WebAssembly static library in addition to native outputs.",
     )
     parser.add_argument(
-        "--wasm-only",
+        "-wasm-only",
         action="store_true",
         help="Only build the WebAssembly static library.",
     )
     parser.add_argument(
-        "--skip-sync",
+        "-skip-sync",
         action="store_true",
         help="Skip git fetch operations for repositories and dependencies.",
     )
     parser.add_argument(
-        "--regen-odin",
+        "-regen-odin",
         action="store_true",
         help="Regenerate Odin bindings with gen_odin.py.",
     )
     parser.add_argument(
-        "--dll",
+        "-dll",
         action="store_true",
         help="Also link a shared library from native build objects.",
     )
