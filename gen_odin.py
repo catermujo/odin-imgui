@@ -443,6 +443,7 @@ def write_import_header(file: typing.IO, include_link_imports: bool = True):
 USE_DLL :: #config(IMGUI_DLL, false)
 
 when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
+    foreign import lib "imgui_wasm.a"
 } else {
     when USE_DLL {
         when ODIN_OS == .Windows {
@@ -1303,11 +1304,7 @@ def main():
     ingest_and_write_defines(imgui_file, imgui_info["defines"])
     write_enums(imgui_file, imgui_info["enums"])
     write_structs(imgui_file, imgui_info["structs"])
-    write_line(imgui_file, "when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {")
-    write_functions(imgui_file, "_", imgui_info["functions"])
-    write_line(imgui_file, "} else {")
     write_functions(imgui_file, "lib", imgui_info["functions"])
-    write_line(imgui_file, "}")
     write_typedefs(imgui_file, imgui_info["typedefs"])
     # write_line(imgui_file, "}")
 
@@ -1323,14 +1320,7 @@ def main():
         ingest_and_write_defines(imgui_internal_file, imgui_internal_info["defines"])
         write_enums(imgui_internal_file, imgui_internal_info["enums"])
         write_structs(imgui_internal_file, imgui_internal_info["structs"])
-        write_line(
-            imgui_internal_file,
-            "when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {",
-        )
-        write_functions(imgui_internal_file, "_", imgui_internal_info["functions"])
-        write_line(imgui_internal_file, "} else {")
         write_functions(imgui_internal_file, "", imgui_internal_info["functions"])
-        write_line(imgui_internal_file, "}")
         write_typedefs(imgui_internal_file, imgui_internal_info["typedefs"])
         # write_line(imgui_internal_file, "}")
 
