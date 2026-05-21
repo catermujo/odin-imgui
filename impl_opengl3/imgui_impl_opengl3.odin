@@ -21,55 +21,10 @@ when im.BACKEND_OPENGL3_ENABLED {
             DestroyDeviceObjects :: proc() ---
         }
     } else {
-        when im.USE_DLL {
-            when ODIN_OS == .Windows {
-                when ODIN_ARCH == .amd64 {
-                    foreign import lib "../imgui_windows_x64_dll.lib"
-                } else {
-                    foreign import lib "../imgui_windows_arm64_dll.lib"
-                }
-            } else when ODIN_OS == .Linux {
-                when ODIN_ARCH == .amd64 {
-                    foreign import lib "../imgui_linux_x64.so"
-                } else {
-                    foreign import lib "../imgui_linux_arm64.so"
-                }
-            } else when ODIN_OS == .Darwin {
-                when ODIN_ARCH == .amd64 {
-                    foreign import lib "../imgui_darwin_x64.dylib"
-                } else {
-                    foreign import lib "../imgui_darwin_arm64.dylib"
-                }
-            }
-        } else {
-            when ODIN_OS == .Linux || ODIN_OS == .Darwin {
-                @(require) foreign import stdcpp "system:c++"
-            }
-            when ODIN_OS == .Windows {
-                when ODIN_ARCH == .amd64 {
-                    foreign import lib "../imgui_windows_x64.lib"
-                } else {
-                    foreign import lib "../imgui_windows_arm64.lib"
-                }
-            } else when ODIN_OS == .Linux {
-                when ODIN_ARCH == .amd64 {
-                    foreign import lib "../imgui_linux_x64.a"
-                } else {
-                    foreign import lib "../imgui_linux_arm64.a"
-                }
-            } else when ODIN_OS == .Darwin {
-                when ODIN_ARCH == .amd64 {
-                    foreign import lib "../imgui_darwin_x64.a"
-                } else {
-                    foreign import lib "../imgui_darwin_arm64.a"
-                }
-            }
-        }
-
         // imgui_impl_opengl3.h
         // Last checked `v1.91.1-docking` (6df1a0)
         @(link_prefix = "ImGui_ImplOpenGL3_", default_calling_convention = "c")
-        foreign lib {
+        foreign _ {
             // Backend API
             Init :: proc(glsl_version: cstring = nil) -> bool ---
             Shutdown :: proc() ---

@@ -430,12 +430,16 @@ def write_global_header(file: typing.IO):
     write_line(file, "package imgui")
 
 
-def write_import_header(file: typing.IO):
+def write_import_header(file: typing.IO, include_link_imports: bool = True):
+    write_line(file, 'import "core:c"')
+
+    if not include_link_imports:
+        write_line(file)
+        return
+
     write_line(
         file,
         """
-import "core:c"
-
 USE_DLL :: #config(IMGUI_DLL, false)
 
 when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
@@ -1149,7 +1153,10 @@ def function_has_default_args(function) -> bool:
 def write_functions(file: typing.IO, libname: str, functions):
     write_section(file, "Functions")
     write_line(file, '@(default_calling_convention="c")')
-    write_line(file, "foreign " + libname + " {")
+    if libname:
+        write_line(file, "foreign " + libname + " {")
+    else:
+        write_line(file, "foreign {")
 
     aligned = []
 
@@ -1310,7 +1317,7 @@ def main():
         imgui_internal_info = json.load(open(args.imgui_internal))
         imgui_internal_file = open("imgui_internal.odin", "w+")
         write_global_header(imgui_internal_file)
-        write_import_header(imgui_internal_file)
+        write_import_header(imgui_internal_file, include_link_imports=False)
 
         # write_line(imgui_internal_file, "when IMGUI {")
         ingest_and_write_defines(imgui_internal_file, imgui_internal_info["defines"])
@@ -1322,7 +1329,7 @@ def main():
         )
         write_functions(imgui_internal_file, "_", imgui_internal_info["functions"])
         write_line(imgui_internal_file, "} else {")
-        write_functions(imgui_internal_file, "lib", imgui_internal_info["functions"])
+        write_functions(imgui_internal_file, "", imgui_internal_info["functions"])
         write_line(imgui_internal_file, "}")
         write_typedefs(imgui_internal_file, imgui_internal_info["typedefs"])
         # write_line(imgui_internal_file, "}")
