@@ -441,7 +441,7 @@ static Local<Object> BuildKeyObject(Isolate* isolate, Local<Context> ctx) {
 
 static void CheckVersion(const FunctionCallbackInfo<Value>& args) {
     (void)args;
-    c_im_check_version();
+    __im_check_version();
 }
 
 static void FreeTmpAlloc(const FunctionCallbackInfo<Value>& args) {
@@ -451,7 +451,7 @@ static void FreeTmpAlloc(const FunctionCallbackInfo<Value>& args) {
 
 static void CreateContext(const FunctionCallbackInfo<Value>& args) {
     Isolate* isolate = args.GetIsolate();
-    void* ctx = c_im_create_context();
+    void* ctx = __im_create_context();
     if (ctx == nullptr) {
         args.GetReturnValue().Set(Null(isolate));
         return;
@@ -461,12 +461,12 @@ static void CreateContext(const FunctionCallbackInfo<Value>& args) {
 
 static void DestroyContext(const FunctionCallbackInfo<Value>& args) {
     void* ctx = args.Length() >= 1 ? ReadHandle<void>(args[0]) : nullptr;
-    c_im_destroy_context(ctx);
+    __im_destroy_context(ctx);
 }
 
 static void GetCurrentContext(const FunctionCallbackInfo<Value>& args) {
     Isolate* isolate = args.GetIsolate();
-    void* ctx = c_im_get_current_context();
+    void* ctx = __im_get_current_context();
     if (ctx == nullptr) {
         args.GetReturnValue().Set(Null(isolate));
         return;
@@ -476,12 +476,12 @@ static void GetCurrentContext(const FunctionCallbackInfo<Value>& args) {
 
 static void SetCurrentContext(const FunctionCallbackInfo<Value>& args) {
     void* ctx = args.Length() >= 1 ? ReadHandle<void>(args[0]) : nullptr;
-    c_im_set_current_context(ctx);
+    __im_set_current_context(ctx);
 }
 
 static void GetIO(const FunctionCallbackInfo<Value>& args) {
     Isolate* isolate = args.GetIsolate();
-    void* io = c_im_get_io();
+    void* io = __im_get_io();
     if (io == nullptr) {
         args.GetReturnValue().Set(Null(isolate));
         return;
@@ -491,32 +491,32 @@ static void GetIO(const FunctionCallbackInfo<Value>& args) {
 
 static void NewFrame(const FunctionCallbackInfo<Value>& args) {
     (void)args;
-    c_im_new_frame();
+    __im_new_frame();
 }
 
 static void EndFrame(const FunctionCallbackInfo<Value>& args) {
     (void)args;
-    c_im_end_frame();
+    __im_end_frame();
 }
 
 static void Render(const FunctionCallbackInfo<Value>& args) {
     (void)args;
-    c_im_render();
+    __im_render();
 }
 
 static void StyleColorsDark(const FunctionCallbackInfo<Value>& args) {
     (void)args;
-    c_im_style_colors_dark();
+    __im_style_colors_dark();
 }
 
 static void StyleColorsLight(const FunctionCallbackInfo<Value>& args) {
     (void)args;
-    c_im_style_colors_light();
+    __im_style_colors_light();
 }
 
 static void StyleColorsClassic(const FunctionCallbackInfo<Value>& args) {
     (void)args;
-    c_im_style_colors_classic();
+    __im_style_colors_classic();
 }
 
 static void ShowDemoWindow(const FunctionCallbackInfo<Value>& args) {
@@ -530,7 +530,7 @@ static void ShowDemoWindow(const FunctionCallbackInfo<Value>& args) {
         open = args[0]->BooleanValue(isolate);
     }
 
-    ImNodeBoolResult result = c_im_show_demo_window(use_open, open);
+    ImNodeBoolResult result = __im_show_demo_window(use_open, open);
     args.GetReturnValue().Set(MakeBoolValueResult(isolate, ctx, result.changed, result.value));
 }
 
@@ -544,7 +544,7 @@ static void IOAddKeyEvent(const FunctionCallbackInfo<Value>& args) {
     if (args.Length() >= 2) ReadI32(ctx, args[1], &key);
     if (args.Length() >= 3) down = args[2]->BooleanValue(isolate);
 
-    c_im_io_add_key_event(io, key, down);
+    __im_io_add_key_event(io, key, down);
 }
 
 static void IOAddMousePosEvent(const FunctionCallbackInfo<Value>& args) {
@@ -556,7 +556,7 @@ static void IOAddMousePosEvent(const FunctionCallbackInfo<Value>& args) {
     if (args.Length() >= 2) ReadF32(ctx, args[1], &x);
     if (args.Length() >= 3) ReadF32(ctx, args[2], &y);
 
-    c_im_io_add_mouse_pos_event(io, x, y);
+    __im_io_add_mouse_pos_event(io, x, y);
 }
 
 static void IOAddMouseButtonEvent(const FunctionCallbackInfo<Value>& args) {
@@ -569,7 +569,7 @@ static void IOAddMouseButtonEvent(const FunctionCallbackInfo<Value>& args) {
     if (args.Length() >= 2) ReadI32(ctx, args[1], &button);
     if (args.Length() >= 3) down = args[2]->BooleanValue(isolate);
 
-    c_im_io_add_mouse_button_event(io, button, down);
+    __im_io_add_mouse_button_event(io, button, down);
 }
 
 static void IOAddMouseWheelEvent(const FunctionCallbackInfo<Value>& args) {
@@ -581,7 +581,7 @@ static void IOAddMouseWheelEvent(const FunctionCallbackInfo<Value>& args) {
     if (args.Length() >= 2) ReadF32(ctx, args[1], &wheel_x);
     if (args.Length() >= 3) ReadF32(ctx, args[2], &wheel_y);
 
-    c_im_io_add_mouse_wheel_event(io, wheel_x, wheel_y);
+    __im_io_add_mouse_wheel_event(io, wheel_x, wheel_y);
 }
 
 static void IOAddInputCharactersUTF8(const FunctionCallbackInfo<Value>& args) {
@@ -594,7 +594,7 @@ static void IOAddInputCharactersUTF8(const FunctionCallbackInfo<Value>& args) {
         text = ReadUtf8OrDefault(isolate, ctx, args[1], "");
     }
 
-    c_im_io_add_input_characters_utf8(io, const_cast<char*>(text.c_str()));
+    __im_io_add_input_characters_utf8(io, const_cast<char*>(text.c_str()));
 }
 
 static void IOSetDisplaySize(const FunctionCallbackInfo<Value>& args) {
@@ -607,7 +607,7 @@ static void IOSetDisplaySize(const FunctionCallbackInfo<Value>& args) {
         ReadVec2(isolate, ctx, args[1], &size);
     }
 
-    c_im_io_set_display_size(io, size);
+    __im_io_set_display_size(io, size);
 }
 
 static void Begin(const FunctionCallbackInfo<Value>& args) {
@@ -629,13 +629,13 @@ static void Begin(const FunctionCallbackInfo<Value>& args) {
     uint32_t flags = 0;
     if (args.Length() >= 3) ReadU32(ctx, args[2], &flags);
 
-    ImNodeBeginResult result = c_im_begin(const_cast<char*>(name.c_str()), use_open, open, flags);
+    ImNodeBeginResult result = __im_begin(const_cast<char*>(name.c_str()), use_open, open, flags);
     args.GetReturnValue().Set(MakeBeginResult(isolate, ctx, result.visible, result.open));
 }
 
 static void End(const FunctionCallbackInfo<Value>& args) {
     (void)args;
-    c_im_end();
+    __im_end();
 }
 
 static void BeginChild(const FunctionCallbackInfo<Value>& args) {
@@ -657,12 +657,12 @@ static void BeginChild(const FunctionCallbackInfo<Value>& args) {
     if (args.Length() >= 3) ReadU32(ctx, args[2], &child_flags);
     if (args.Length() >= 4) ReadU32(ctx, args[3], &window_flags);
 
-    args.GetReturnValue().Set(c_im_begin_child(const_cast<char*>(name.c_str()), size, child_flags, window_flags));
+    args.GetReturnValue().Set(__im_begin_child(const_cast<char*>(name.c_str()), size, child_flags, window_flags));
 }
 
 static void EndChild(const FunctionCallbackInfo<Value>& args) {
     (void)args;
-    c_im_end_child();
+    __im_end_child();
 }
 
 static void Text(const FunctionCallbackInfo<Value>& args) {
@@ -672,7 +672,7 @@ static void Text(const FunctionCallbackInfo<Value>& args) {
     if (args.Length() >= 1) {
         text = ReadUtf8OrDefault(isolate, ctx, args[0], "");
     }
-    c_im_text(const_cast<char*>(text.c_str()));
+    __im_text(const_cast<char*>(text.c_str()));
 }
 
 static void TextUnformatted(const FunctionCallbackInfo<Value>& args) {
@@ -682,7 +682,7 @@ static void TextUnformatted(const FunctionCallbackInfo<Value>& args) {
     if (args.Length() >= 1) {
         text = ReadUtf8OrDefault(isolate, ctx, args[0], "");
     }
-    c_im_text_unformatted(const_cast<char*>(text.c_str()));
+    __im_text_unformatted(const_cast<char*>(text.c_str()));
 }
 
 static void TextDisabled(const FunctionCallbackInfo<Value>& args) {
@@ -692,7 +692,7 @@ static void TextDisabled(const FunctionCallbackInfo<Value>& args) {
     if (args.Length() >= 1) {
         text = ReadUtf8OrDefault(isolate, ctx, args[0], "");
     }
-    c_im_text_disabled(const_cast<char*>(text.c_str()));
+    __im_text_disabled(const_cast<char*>(text.c_str()));
 }
 
 static void SeparatorText(const FunctionCallbackInfo<Value>& args) {
@@ -702,7 +702,7 @@ static void SeparatorText(const FunctionCallbackInfo<Value>& args) {
     if (args.Length() >= 1) {
         text = ReadUtf8OrDefault(isolate, ctx, args[0], "");
     }
-    c_im_separator_text(const_cast<char*>(text.c_str()));
+    __im_separator_text(const_cast<char*>(text.c_str()));
 }
 
 static void SameLine(const FunctionCallbackInfo<Value>& args) {
@@ -711,7 +711,7 @@ static void SameLine(const FunctionCallbackInfo<Value>& args) {
     float spacing = -1.0f;
     if (args.Length() >= 1) ReadF32(ctx, args[0], &offset);
     if (args.Length() >= 2) ReadF32(ctx, args[1], &spacing);
-    c_im_same_line(offset, spacing);
+    __im_same_line(offset, spacing);
 }
 
 static void Button(const FunctionCallbackInfo<Value>& args) {
@@ -728,7 +728,7 @@ static void Button(const FunctionCallbackInfo<Value>& args) {
         ReadVec2(isolate, ctx, args[1], &size);
     }
 
-    args.GetReturnValue().Set(c_im_button(const_cast<char*>(label.c_str()), size));
+    args.GetReturnValue().Set(__im_button(const_cast<char*>(label.c_str()), size));
 }
 
 static void SmallButton(const FunctionCallbackInfo<Value>& args) {
@@ -740,7 +740,7 @@ static void SmallButton(const FunctionCallbackInfo<Value>& args) {
         label = ReadUtf8OrDefault(isolate, ctx, args[0], "button");
     }
 
-    args.GetReturnValue().Set(c_im_small_button(const_cast<char*>(label.c_str())));
+    args.GetReturnValue().Set(__im_small_button(const_cast<char*>(label.c_str())));
 }
 
 static void Checkbox(const FunctionCallbackInfo<Value>& args) {
@@ -755,7 +755,7 @@ static void Checkbox(const FunctionCallbackInfo<Value>& args) {
     bool value = false;
     if (args.Length() >= 2) value = args[1]->BooleanValue(isolate);
 
-    ImNodeBoolResult result = c_im_checkbox(const_cast<char*>(label.c_str()), value);
+    ImNodeBoolResult result = __im_checkbox(const_cast<char*>(label.c_str()), value);
     args.GetReturnValue().Set(MakeBoolValueResult(isolate, ctx, result.changed, result.value));
 }
 
@@ -785,7 +785,7 @@ static void SliderFloat(const FunctionCallbackInfo<Value>& args) {
     uint32_t flags = 0;
     if (args.Length() >= 6) ReadU32(ctx, args[5], &flags);
 
-    ImNodeF32Result result = c_im_slider_float(const_cast<char*>(label.c_str()), value, v_min, v_max, format, flags);
+    ImNodeF32Result result = __im_slider_float(const_cast<char*>(label.c_str()), value, v_min, v_max, format, flags);
     args.GetReturnValue().Set(MakeF32ValueResult(isolate, ctx, result.changed, result.value));
 }
 
@@ -815,7 +815,7 @@ static void SliderInt(const FunctionCallbackInfo<Value>& args) {
     uint32_t flags = 0;
     if (args.Length() >= 6) ReadU32(ctx, args[5], &flags);
 
-    ImNodeI32Result result = c_im_slider_int(const_cast<char*>(label.c_str()), value, v_min, v_max, format, flags);
+    ImNodeI32Result result = __im_slider_int(const_cast<char*>(label.c_str()), value, v_min, v_max, format, flags);
     args.GetReturnValue().Set(MakeI32ValueResult(isolate, ctx, result.changed, result.value));
 }
 
@@ -847,7 +847,7 @@ static void DragFloat(const FunctionCallbackInfo<Value>& args) {
     uint32_t flags = 0;
     if (args.Length() >= 7) ReadU32(ctx, args[6], &flags);
 
-    ImNodeF32Result result = c_im_drag_float(const_cast<char*>(label.c_str()), value, speed, v_min, v_max, format, flags);
+    ImNodeF32Result result = __im_drag_float(const_cast<char*>(label.c_str()), value, speed, v_min, v_max, format, flags);
     args.GetReturnValue().Set(MakeF32ValueResult(isolate, ctx, result.changed, result.value));
 }
 
@@ -879,7 +879,7 @@ static void DragInt(const FunctionCallbackInfo<Value>& args) {
     uint32_t flags = 0;
     if (args.Length() >= 7) ReadU32(ctx, args[6], &flags);
 
-    ImNodeI32Result result = c_im_drag_int(const_cast<char*>(label.c_str()), value, speed, v_min, v_max, format, flags);
+    ImNodeI32Result result = __im_drag_int(const_cast<char*>(label.c_str()), value, speed, v_min, v_max, format, flags);
     args.GetReturnValue().Set(MakeI32ValueResult(isolate, ctx, result.changed, result.value));
 }
 
@@ -905,7 +905,7 @@ static void ComboChar(const FunctionCallbackInfo<Value>& args) {
     int32_t max_items = -1;
     if (args.Length() >= 4) ReadI32(ctx, args[3], &max_items);
 
-    ImNodeI32Result result = c_im_combo_char(
+    ImNodeI32Result result = __im_combo_char(
         const_cast<char*>(label.c_str()),
         current,
         item_ptrs.empty() ? nullptr : item_ptrs.data(),
@@ -933,7 +933,7 @@ static void ColorEdit4(const FunctionCallbackInfo<Value>& args) {
     uint32_t flags = 0;
     if (args.Length() >= 3) ReadU32(ctx, args[2], &flags);
 
-    ImNodeColor4Result result = c_im_color_edit4(
+    ImNodeColor4Result result = __im_color_edit4(
         const_cast<char*>(label.c_str()),
         color[0],
         color[1],
@@ -967,7 +967,7 @@ static void ProgressBar(const FunctionCallbackInfo<Value>& args) {
         overlay = const_cast<char*>(overlay_storage.c_str());
     }
 
-    c_im_progress_bar(fraction, size, overlay);
+    __im_progress_bar(fraction, size, overlay);
 }
 
 static void PlotLines(const FunctionCallbackInfo<Value>& args) {
@@ -1006,7 +1006,7 @@ static void PlotLines(const FunctionCallbackInfo<Value>& args) {
     int32_t stride = static_cast<int32_t>(sizeof(float));
     if (args.Length() >= 8) ReadI32(ctx, args[7], &stride);
 
-    c_im_plot_lines(
+    __im_plot_lines(
         const_cast<char*>(label.c_str()),
         values.empty() ? nullptr : values.data(),
         static_cast<int32_t>(values.size()),
@@ -1023,7 +1023,7 @@ static void SetScrollHereY(const FunctionCallbackInfo<Value>& args) {
     Local<Context> ctx = args.GetIsolate()->GetCurrentContext();
     float ratio = 0.5f;
     if (args.Length() >= 1) ReadF32(ctx, args[0], &ratio);
-    c_im_set_scroll_here_y(ratio);
+    __im_set_scroll_here_y(ratio);
 }
 
 static void PushID(const FunctionCallbackInfo<Value>& args) {
@@ -1033,7 +1033,7 @@ static void PushID(const FunctionCallbackInfo<Value>& args) {
     if (args.Length() >= 1) {
         value = ReadUtf8OrDefault(isolate, ctx, args[0], "");
     }
-    c_im_push_id(const_cast<char*>(value.c_str()));
+    __im_push_id(const_cast<char*>(value.c_str()));
 }
 
 static void PushIDPtr(const FunctionCallbackInfo<Value>& args) {
@@ -1043,12 +1043,12 @@ static void PushIDPtr(const FunctionCallbackInfo<Value>& args) {
     if (args.Length() >= 1) {
         value = ReadPtrLike(isolate, ctx, args[0]);
     }
-    c_im_push_id_ptr(value);
+    __im_push_id_ptr(value);
 }
 
 static void PopID(const FunctionCallbackInfo<Value>& args) {
     (void)args;
-    c_im_pop_id();
+    __im_pop_id();
 }
 
 static void BeginDisabled(const FunctionCallbackInfo<Value>& args) {
@@ -1057,12 +1057,12 @@ static void BeginDisabled(const FunctionCallbackInfo<Value>& args) {
     if (args.Length() >= 1) {
         disabled = args[0]->BooleanValue(isolate);
     }
-    c_im_begin_disabled(disabled);
+    __im_begin_disabled(disabled);
 }
 
 static void EndDisabled(const FunctionCallbackInfo<Value>& args) {
     (void)args;
-    c_im_end_disabled();
+    __im_end_disabled();
 }
 
 static void Curve(const FunctionCallbackInfo<Value>& args) {
@@ -1097,7 +1097,7 @@ static void Curve(const FunctionCallbackInfo<Value>& args) {
     if (args.Length() >= 5) ReadVec2(isolate, ctx, args[4], &range_min);
     if (args.Length() >= 6) ReadVec2(isolate, ctx, args[5], &range_max);
 
-    ImNodeSelectionResult result = c_im_curve(
+    ImNodeSelectionResult result = __im_curve(
         const_cast<char*>(label.c_str()),
         size,
         static_cast<int32_t>(points.size()),
@@ -1133,7 +1133,7 @@ static void CurveValue(const FunctionCallbackInfo<Value>& args) {
         return;
     }
 
-    args.GetReturnValue().Set(c_im_curve_value(p, static_cast<int32_t>(points.size()), points.empty() ? nullptr : points.data()));
+    args.GetReturnValue().Set(__im_curve_value(p, static_cast<int32_t>(points.size()), points.empty() ? nullptr : points.data()));
 }
 
 static void CurveValueSmooth(const FunctionCallbackInfo<Value>& args) {
@@ -1149,7 +1149,7 @@ static void CurveValueSmooth(const FunctionCallbackInfo<Value>& args) {
         return;
     }
 
-    args.GetReturnValue().Set(c_im_curve_value_smooth(p, static_cast<int32_t>(points.size()), points.empty() ? nullptr : points.data()));
+    args.GetReturnValue().Set(__im_curve_value_smooth(p, static_cast<int32_t>(points.size()), points.empty() ? nullptr : points.data()));
 }
 
 void Initialize(Local<Object> exports) {
