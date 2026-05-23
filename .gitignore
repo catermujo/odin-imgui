@@ -9,3 +9,5 @@ ols.json
 !**/*.dylib
 __pycache__/
 .venv/
+im.node
+libim.dylib
