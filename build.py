@@ -170,6 +170,15 @@ def exec_vcvars(cmd: typing.List[str], what):
         exit(1)
 
 
+def uv_run_cmd(cmd: typing.List[str], requirements: str) -> typing.List[str]:
+    uv_bin = resolve_tool(["uv"])
+    assertx(
+        uv_bin is not None,
+        "uv not found! install uv to run dear_bindings requirements.",
+    )
+    return [uv_bin, "run", "--with-requirements", requirements, *cmd]
+
+
 def copy(from_path: str, files: typing.List[str], to_path: str):
     for file in files:
         shutil.copy(path.join(from_path, file), to_path)
@@ -835,34 +844,42 @@ def main():
     shutil.rmtree(path="temp", ignore_errors=True)
     os.mkdir("temp")
 
+    dear_bindings_requirements = pp("dear_bindings/requirements.txt")
+
     # Generate Odin bindings
     exec(
-        [
-            sys.executable,
-            pp("dear_bindings/dear_bindings.py"),
-            "-o",
-            pp("temp/c_imgui"),
-            "--nogeneratedefaultargfunctions",
-            "--imconfig-path",
-            pp("imconfig.h"),
-            pp("imgui/imgui.h"),
-        ],
+        uv_run_cmd(
+            [
+                "python3",
+                pp("dear_bindings/dear_bindings.py"),
+                "-o",
+                pp("temp/c_imgui"),
+                "--nogeneratedefaultargfunctions",
+                "--imconfig-path",
+                pp("imconfig.h"),
+                pp("imgui/imgui.h"),
+            ],
+            dear_bindings_requirements,
+        ),
         "Running dear_bindings: ImGui",
     )
     if build_imgui_internal:
         exec(
-            [
-                sys.executable,
-                pp("dear_bindings/dear_bindings.py"),
-                "-o",
-                pp("temp/c_imgui_internal"),
-                "--include",
-                pp("imgui/imgui.h"),
-                "--nogeneratedefaultargfunctions",
-                "--imconfig-path",
-                pp("imconfig.h"),
-                pp("imgui/imgui_internal.h"),
-            ],
+            uv_run_cmd(
+                [
+                    "python3",
+                    pp("dear_bindings/dear_bindings.py"),
+                    "-o",
+                    pp("temp/c_imgui_internal"),
+                    "--include",
+                    pp("imgui/imgui.h"),
+                    "--nogeneratedefaultargfunctions",
+                    "--imconfig-path",
+                    pp("imconfig.h"),
+                    pp("imgui/imgui_internal.h"),
+                ],
+                dear_bindings_requirements,
+            ),
             "Running dear_bindings: ImGui Internal",
         )
 
