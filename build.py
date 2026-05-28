@@ -304,30 +304,28 @@ def ensure_checked_out_with_commit(
 def get_platform_imgui_lib_name() -> str:
     """Returns imgui binary name for system/processor"""
     system = platform.system()
-
-    processor = None
-    if platform.machine() in ["AMD64", "x86_64"]:
-        processor = "x64"
-    if platform.machine() in ["arm64"]:
-        processor = "arm64"
+    processor = get_platform_processor()
 
     binary_ext = "lib" if system == "Windows" else "a"
 
     assertx(system != "", "System could not be determined")
-    assertx(processor != None, f"Unexpected processor: {platform.machine()}")
-
     return f"imgui_{system.lower()}_{processor}.{binary_ext}"
+
+
+def get_platform_processor() -> str:
+    machine = platform.machine().lower()
+    if machine in ["amd64", "x86_64"]:
+        return "x64"
+    if machine in ["arm64", "aarch64"]:
+        return "arm64"
+    assertx(False, f"Unexpected processor: {platform.machine()}")
+    return ""
 
 
 def get_platform_imgui_dll_name() -> str:
     """Returns imgui shared library name for system/processor"""
     system = platform.system()
-
-    processor = None
-    if platform.machine() in ["AMD64", "x86_64"]:
-        processor = "x64"
-    if platform.machine() in ["arm64"]:
-        processor = "arm64"
+    processor = get_platform_processor()
 
     if system == "Windows":
         binary_ext = "dll"
@@ -337,8 +335,6 @@ def get_platform_imgui_dll_name() -> str:
         binary_ext = "so"
 
     assertx(system != "", "System could not be determined")
-    assertx(processor != None, f"Unexpected processor: {platform.machine()}")
-
     return f"imgui_{system.lower()}_{processor}.{binary_ext}"
 
 
@@ -347,13 +343,7 @@ def get_platform_imgui_dll_import_lib_name() -> str:
     system = platform.system()
     assertx(system == "Windows", "Import library naming is only used on Windows")
 
-    processor = None
-    if platform.machine() in ["AMD64", "x86_64"]:
-        processor = "x64"
-    if platform.machine() in ["arm64"]:
-        processor = "arm64"
-
-    assertx(processor != None, f"Unexpected processor: {platform.machine()}")
+    processor = get_platform_processor()
     return f"imgui_windows_{processor}_dll.lib"
 
 
