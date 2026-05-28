@@ -347,6 +347,41 @@ def get_platform_imgui_dll_import_lib_name() -> str:
     return f"imgui_windows_{processor}_dll.lib"
 
 
+def get_sdl_link_dirs(dep: str) -> typing.List[str]:
+    sdl_dir = path.abspath(path.join("..", "sdl"))
+    system = platform.system()
+    processor = get_platform_processor()
+    dirs: typing.List[str] = []
+
+    if dep == "sdl3":
+        if system == "Linux":
+            dirs.append(path.join(sdl_dir, f"linux_{processor}"))
+        dirs += [
+            path.join(sdl_dir, "libs", "SDL"),
+            path.join(sdl_dir, "build", "SDL"),
+            sdl_dir,
+        ]
+    elif dep == "sdl2":
+        dirs += [
+            path.join(sdl_dir, "libs", "SDL"),
+            path.join(sdl_dir, "build", "SDL"),
+            sdl_dir,
+        ]
+    else:
+        return []
+
+    out = []
+    seen = set()
+    for candidate in dirs:
+        resolved = path.abspath(candidate)
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        if path.isdir(resolved):
+            out.append(resolved)
+    return out
+
+
 def link_dll():
     """Link a shared library from the .o files in temp/"""
     dll_name = get_platform_imgui_dll_name()
@@ -366,8 +401,8 @@ def link_dll():
         enabled_backends.append(backend_name)
         for dep in backend.get("deps", []):
             if dep == "sdl3":
-                sdl_dir = path.abspath(path.join("..", "sdl"))
                 if system == "Windows":
+                    sdl_dir = path.abspath(path.join("..", "sdl"))
                     windows_libpaths.add(sdl_dir)
                     if path.isfile(path.join(sdl_dir, "SDL3.lib")):
                         windows_libs.add("SDL3.lib")
@@ -376,14 +411,18 @@ def link_dll():
                     else:
                         windows_libs.add("SDL3.lib")
                 else:
-                    extra_link_flags += ["-L" + sdl_dir, "-lSDL3"]
+                    for sdl_link_dir in get_sdl_link_dirs(dep):
+                        extra_link_flags += ["-L" + sdl_link_dir]
+                    extra_link_flags += ["-lSDL3"]
             elif dep == "sdl2":
-                sdl_dir = path.abspath(path.join("..", "sdl"))
                 if system == "Windows":
+                    sdl_dir = path.abspath(path.join("..", "sdl"))
                     windows_libpaths.add(sdl_dir)
                     windows_libs.add("SDL2.lib")
                 else:
-                    extra_link_flags += ["-L" + sdl_dir, "-lSDL2"]
+                    for sdl_link_dir in get_sdl_link_dirs(dep):
+                        extra_link_flags += ["-L" + sdl_link_dir]
+                    extra_link_flags += ["-lSDL2"]
 
     # Backends can require extra system SDK libs when producing a DLL.
     if system == "Windows":
