@@ -7,7 +7,9 @@ when im.BACKEND_SDL3_ENABLED {
     when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32 {
         foreign import lib "../imgui_wasm.a"
     } else {
-        when ODIN_OS == .Linux || ODIN_OS == .Darwin {
+        when ODIN_OS == .Linux {
+            @(require) foreign import stdcpp "system:stdc++"
+        } else when ODIN_OS == .Darwin {
             @(require) foreign import stdcpp "system:c++"
         }
         when ODIN_OS == .Windows {
