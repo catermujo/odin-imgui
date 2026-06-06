@@ -515,8 +515,9 @@ def did_re_execute(no_reexecute: bool) -> bool:
     rerun_cmd = subprocess.list2cmdline(
         [sys.executable, "build.py", "-no_reexecute"] + forwarded_args
     )
+    processor = get_platform_processor()
     result = subprocess.run(
-        ["cmd", "/d", "/c", f"call vcvarsall.bat x64 && {rerun_cmd}"]
+        ["cmd", "/d", "/c", f"call vcvarsall.bat {processor} && {rerun_cmd}"]
     )
     assertx(result.returncode == 0, "Re-executed build failed.")
     return True
