@@ -19,3 +19,9 @@ foreign _ {
     CreateDeviceObjects :: proc(device: ^mtl.Device) -> bool ---
     DestroyDeviceObjects :: proc() ---
 }
+
+RenderState :: struct {
+    CommandBuffer:  ^mtl.CommandBuffer,
+    CommandEncoder: ^mtl.RenderCommandEncoder,
+    SamplerDefault: ^mtl.SamplerState,
+}

@@ -17,6 +17,11 @@ InitInfo :: struct {
     PipelineMultisampleState: wgpu.MultisampleState,
 }
 
+RenderState :: struct {
+    SamplerDefault:  wgpu.Sampler,
+    SamplerOverride: wgpu.Sampler,
+}
+
 INIT_INFO_DEFAULT :: InitInfo {
     NumFramesInFlight = 3,
     PipelineMultisampleState = {count = 1, mask = max(u32)},
@@ -42,6 +47,7 @@ Init :: proc(init_info: InitInfo = INIT_INFO_DEFAULT, allocator := context.alloc
     bd.numFramesInFlight = init_info.NumFramesInFlight
     bd.frameIndex = max(uint)
 
+    bd.renderResources.commonBindGroups.allocator = allocator
     bd.renderResources.imageBindGroups.allocator = allocator
 
     bd.frameResources = make([]FrameResource, bd.numFramesInFlight, allocator)
@@ -60,6 +66,7 @@ Shutdown :: proc() {
 
     InvalidateDeviceObjects()
 
+    delete(bd.renderResources.commonBindGroups)
     delete(bd.renderResources.imageBindGroups)
     delete(bd.frameResources, bd.allocator)
 
@@ -148,6 +155,13 @@ RenderDrawData :: proc(draw_data: ^imgui.DrawData, pass_encoder: wgpu.RenderPass
     wgpu.QueueWriteBuffer(bd.defaultQueue, fr.indexBuffer, 0, raw_data(idx_dst), ib_write_size)
 
     SetupRenderState(draw_data, pass_encoder, fr)
+    platform_io := imgui.GetPlatformIO()
+    render_state := RenderState {
+        SamplerDefault = bd.renderResources.sampler,
+    }
+    platform_io.Renderer_RenderState = &render_state
+    defer platform_io.Renderer_RenderState = nil
+    bound_common_sampler := bd.renderResources.sampler
 
     global_vtx_offset: u32 = 0
     global_idx_offset: u32 = 0
@@ -160,6 +174,26 @@ RenderDrawData :: proc(draw_data: ^imgui.DrawData, pass_encoder: wgpu.RenderPass
             if pcmd.UserCallback != nil {
                 pcmd.UserCallback(draw_list, pcmd)
             } else {
+                sampler := render_state.SamplerDefault
+                if render_state.SamplerOverride != nil {
+                    sampler = render_state.SamplerOverride
+                }
+                if bound_common_sampler != sampler {
+                    if sampler == bd.renderResources.sampler {
+                        wgpu.RenderPassEncoderSetBindGroup(pass_encoder, 0, bd.renderResources.commonBindGroup)
+                    } else {
+                        _, common_bind_group, is_new, _ := map_entry(&bd.renderResources.commonBindGroups, sampler)
+                        if is_new {
+                            common_bind_group^ = CreateCommonBindGroup(
+                                bd.renderResources.commonBindGroupLayout,
+                                sampler,
+                            )
+                        }
+                        wgpu.RenderPassEncoderSetBindGroup(pass_encoder, 0, common_bind_group^)
+                    }
+                    bound_common_sampler = sampler
+                }
+
                 tex_id := imgui.DrawCmd_GetTexID(pcmd)
                 // TODO: error?
                 _, val, is_new, _ := map_entry(&bd.renderResources.imageBindGroups, tex_id)
@@ -205,6 +239,10 @@ RenderDrawData :: proc(draw_data: ^imgui.DrawData, pass_encoder: wgpu.RenderPass
         global_vtx_offset += cast(u32)draw_list.VtxBuffer.Size
     }
 
+    for _, common_bind_group in bd.renderResources.commonBindGroups {
+        wgpu.BindGroupRelease(common_bind_group)
+    }
+    clear(&bd.renderResources.commonBindGroups)
     for _, image_bind_group in bd.renderResources.imageBindGroups {
         wgpu.BindGroupRelease(image_bind_group)
     }
@@ -213,13 +251,15 @@ RenderDrawData :: proc(draw_data: ^imgui.DrawData, pass_encoder: wgpu.RenderPass
 
 @(private)
 RenderResources :: struct {
-    fontTexture:          wgpu.Texture,
-    fontTextureView:      wgpu.TextureView,
-    sampler:              wgpu.Sampler,
-    uniforms:             wgpu.Buffer,
-    commonBindGroup:      wgpu.BindGroup,
-    imageBindGroups:      map[imgui.TextureID]wgpu.BindGroup,
-    imageBindGroupLayout: wgpu.BindGroupLayout,
+    fontTexture:           wgpu.Texture,
+    fontTextureView:       wgpu.TextureView,
+    sampler:               wgpu.Sampler,
+    uniforms:              wgpu.Buffer,
+    commonBindGroup:       wgpu.BindGroup,
+    commonBindGroups:      map[wgpu.Sampler]wgpu.BindGroup,
+    commonBindGroupLayout: wgpu.BindGroupLayout,
+    imageBindGroups:       map[imgui.TextureID]wgpu.BindGroup,
+    imageBindGroupLayout:  wgpu.BindGroupLayout,
 }
 
 @(private)
@@ -267,6 +307,28 @@ CreateImageBindGroup :: proc(layout: wgpu.BindGroupLayout, texture: wgpu.Texture
     return wgpu.DeviceCreateBindGroup(
         bd.device,
         &{layout = layout, entryCount = 1, entries = &wgpu.BindGroupEntry{textureView = texture}},
+    )
+}
+
+@(private)
+CreateCommonBindGroup :: proc(layout: wgpu.BindGroupLayout, sampler: wgpu.Sampler) -> wgpu.BindGroup {
+    bd := GetBackendData()
+
+    return wgpu.DeviceCreateBindGroup(
+        bd.device,
+        &{
+            layout = layout,
+            entryCount = 2,
+            entries = raw_data(
+                []wgpu.BindGroupEntry {
+                    {
+                        buffer = bd.renderResources.uniforms,
+                        size = cast(u64)mem.align_forward_uint(size_of(Uniforms), 16),
+                    },
+                    {binding = 1, sampler = sampler},
+                },
+            ),
+        },
     )
 }
 
@@ -480,28 +542,16 @@ CreateDeviceObjects :: proc() {
     CreateFontsTexture()
     CreateUniformBuffer()
 
-    bd.renderResources.commonBindGroup = wgpu.DeviceCreateBindGroup(
-        bd.device,
-        &{
-            layout = bg_layouts[0],
-            entryCount = 2,
-            entries = raw_data(
-                []wgpu.BindGroupEntry {
-                    {
-                        buffer = bd.renderResources.uniforms,
-                        size = cast(u64)mem.align_forward_uint(size_of(Uniforms), 16),
-                    },
-                    {binding = 1, sampler = bd.renderResources.sampler},
-                },
-            ),
-        },
+    bd.renderResources.commonBindGroupLayout = bg_layouts[0]
+    bd.renderResources.commonBindGroup = CreateCommonBindGroup(
+        bd.renderResources.commonBindGroupLayout,
+        bd.renderResources.sampler,
     )
     bd.renderResources.imageBindGroupLayout = bg_layouts[1]
 
     wgpu.ShaderModuleRelease(vertex_shader_module)
     wgpu.ShaderModuleRelease(pixel_shader_module)
     wgpu.PipelineLayoutRelease(pipeline_layout)
-    wgpu.BindGroupLayoutRelease(bg_layouts[0])
 }
 
 @(private)
@@ -518,6 +568,7 @@ InvalidateDeviceObjects :: proc() {
     wgpu.SamplerRelease(bd.renderResources.sampler)
     wgpu.BufferRelease(bd.renderResources.uniforms)
     wgpu.BindGroupRelease(bd.renderResources.commonBindGroup)
+    wgpu.BindGroupLayoutRelease(bd.renderResources.commonBindGroupLayout)
     wgpu.BindGroupLayoutRelease(bd.renderResources.imageBindGroupLayout)
 
     io := imgui.GetIO()
@@ -534,4 +585,3 @@ InvalidateDeviceObjects :: proc() {
         frame.vertexBufferHost.allocator = bd.allocator
     }
 }
-

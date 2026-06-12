@@ -354,6 +354,8 @@ def get_sdl_link_dirs(dep: str) -> typing.List[str]:
     dirs: typing.List[str] = []
 
     if dep == "sdl3":
+        if system == "Windows":
+            dirs.append(path.join(sdl_dir, f"windows_{processor}"))
         if system == "Linux":
             dirs.append(path.join(sdl_dir, f"linux_{processor}"))
         dirs += [
@@ -402,11 +404,14 @@ def link_dll():
         for dep in backend.get("deps", []):
             if dep == "sdl3":
                 if system == "Windows":
-                    sdl_dir = path.abspath(path.join("..", "sdl"))
-                    windows_libpaths.add(sdl_dir)
-                    if path.isfile(path.join(sdl_dir, "SDL3.lib")):
+                    sdl_link_dirs = get_sdl_link_dirs(dep)
+                    for sdl_link_dir in sdl_link_dirs:
+                        windows_libpaths.add(sdl_link_dir)
+                    if any(path.isfile(path.join(sdl_link_dir, "SDL3.lib")) for sdl_link_dir in sdl_link_dirs):
                         windows_libs.add("SDL3.lib")
-                    elif path.isfile(path.join(sdl_dir, "SDL3_static.lib")):
+                    elif any(
+                        path.isfile(path.join(sdl_link_dir, "SDL3_static.lib")) for sdl_link_dir in sdl_link_dirs
+                    ):
                         windows_libs.add("SDL3_static.lib")
                     else:
                         windows_libs.add("SDL3.lib")
