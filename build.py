@@ -304,12 +304,14 @@ def ensure_checked_out_with_commit(
 def get_platform_imgui_lib_name() -> str:
     """Returns imgui binary name for system/processor"""
     system = platform.system()
-    processor = get_platform_processor()
-
-    binary_ext = "lib" if system == "Windows" else "a"
+    arch_dir = get_platform_arch_dir()
 
     assertx(system != "", "System could not be determined")
-    return f"imgui_{system.lower()}_{processor}.{binary_ext}"
+    if system == "Windows":
+        return path.join(arch_dir, "imgui.lib")
+    if system == "Darwin":
+        return path.join(arch_dir, "imgui.darwin.a")
+    return path.join(arch_dir, "imgui.linux.a")
 
 
 def get_platform_processor() -> str:
@@ -322,29 +324,36 @@ def get_platform_processor() -> str:
     return ""
 
 
-def get_platform_imgui_dll_name() -> str:
-    """Returns imgui shared library name for system/processor"""
+def get_platform_arch_dir() -> str:
     system = platform.system()
     processor = get_platform_processor()
 
     if system == "Windows":
-        binary_ext = "dll"
-    elif system == "Darwin":
-        binary_ext = "dylib"
-    else:
-        binary_ext = "so"
+        return f"windows_{processor}"
+    if system == "Darwin":
+        return f"darwin_{processor}"
+    assertx(system == "Linux", f"Unexpected system: {system}")
+    return f"linux_{processor}"
 
-    assertx(system != "", "System could not be determined")
-    return f"imgui_{system.lower()}_{processor}.{binary_ext}"
+
+def get_platform_imgui_dll_name() -> str:
+    """Returns imgui shared library name for system/processor"""
+    system = platform.system()
+    arch_dir = get_platform_arch_dir()
+
+    if system == "Windows":
+        return path.join(arch_dir, "imgui.dll")
+    if system == "Darwin":
+        return path.join(arch_dir, "imgui.dylib")
+    assertx(system == "Linux", f"Unexpected system: {system}")
+    return path.join(arch_dir, "imgui.so")
 
 
 def get_platform_imgui_dll_import_lib_name() -> str:
     """Returns the import library name used by the shared library build."""
     system = platform.system()
     assertx(system == "Windows", "Import library naming is only used on Windows")
-
-    processor = get_platform_processor()
-    return f"imgui_windows_{processor}_dll.lib"
+    return path.join(get_platform_arch_dir(), "imgui_dll.lib")
 
 
 def get_sdl_link_dirs(dep: str) -> typing.List[str]:
@@ -388,6 +397,9 @@ def link_dll():
     """Link a shared library from the .o files in temp/"""
     dll_name = get_platform_imgui_dll_name()
     system = platform.system()
+    dll_dir = path.dirname(dll_name)
+    if dll_dir:
+        os.makedirs(dll_dir, exist_ok=True)
 
     # Collect extra link flags from backend dependencies.
     extra_link_flags = []
@@ -407,10 +419,14 @@ def link_dll():
                     sdl_link_dirs = get_sdl_link_dirs(dep)
                     for sdl_link_dir in sdl_link_dirs:
                         windows_libpaths.add(sdl_link_dir)
-                    if any(path.isfile(path.join(sdl_link_dir, "SDL3.lib")) for sdl_link_dir in sdl_link_dirs):
+                    if any(
+                        path.isfile(path.join(sdl_link_dir, "SDL3.lib"))
+                        for sdl_link_dir in sdl_link_dirs
+                    ):
                         windows_libs.add("SDL3.lib")
                     elif any(
-                        path.isfile(path.join(sdl_link_dir, "SDL3_static.lib")) for sdl_link_dir in sdl_link_dirs
+                        path.isfile(path.join(sdl_link_dir, "SDL3_static.lib"))
+                        for sdl_link_dir in sdl_link_dirs
                     ):
                         windows_libs.add("SDL3_static.lib")
                     else:
@@ -453,7 +469,7 @@ def link_dll():
                 "-arch",
                 arch,
                 "-install_name",
-                dll_name,
+                path.basename(dll_name),
                 "-framework",
                 "Foundation",
                 "-framework",
@@ -699,6 +715,9 @@ def compile(
     os.chdir("..")
 
     dest_binary = get_platform_imgui_lib_name()
+    dest_dir = path.dirname(dest_binary)
+    if dest_dir:
+        os.makedirs(dest_dir, exist_ok=True)
 
     if wasm:
         shutil.rmtree(path="wasm", ignore_errors=True)
